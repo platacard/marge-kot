@@ -21,6 +21,7 @@ hs_err_pid*
 .idea
 build
 .DS_Store
+local.properties
 
 
 

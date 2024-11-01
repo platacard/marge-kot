@@ -1,2 +1,0 @@
-server.compression.enabled: true
-server.http2.enabled: true
