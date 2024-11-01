@@ -17,7 +17,7 @@ Now you can run:
 java -jar --enable-preview build/libs/application-boot.jar
 ```
 
-## Or, build with Docker
+## Or, build with Docker 
 
 Execute `docker build . -t app`. Your image will be located at `docker images -a`. Now you can
 run:
