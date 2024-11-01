@@ -1,5 +1,5 @@
+import org.gradle.api.JavaVersion.VERSION_17
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
-import org.gradle.api.JavaVersion.VERSION_21
 
 repositories {
   mavenCentral()
@@ -13,18 +13,18 @@ dependencies {
   implementation("io.ktor:ktor-server-netty-jvm:2.1.3")
   implementation("ch.qos.logback:logback-classic:1.4.5")
   testImplementation("io.ktor:ktor-client-cio:2.1.3")
-  testImplementation("org.junit.jupiter:junit-jupiter:5.9.0")
+  testImplementation("org.junit.jupiter:junit-jupiter:5.11.3")
   testImplementation("com.google.truth:truth:1.1.3")
   testImplementation("io.mockk:mockk:1.13.2")
 }
 
 java {
-  sourceCompatibility = VERSION_21
-  targetCompatibility = VERSION_21
+  sourceCompatibility = VERSION_17
+  targetCompatibility = VERSION_17
 }
 kotlin {
   compilerOptions {
-    jvmTarget = JvmTarget.JVM_21
+    jvmTarget = JvmTarget.JVM_17
     freeCompilerArgs.add("-opt-in=kotlin.time.ExperimentalTime")
   }
 }

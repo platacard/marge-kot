@@ -4,7 +4,7 @@ import org.junit.jupiter.api.Test
 class AppKtTest {
 
   @Test
-  @Disabled
+//  @Disabled
   fun testLocalhostServer() {
   }
 }
