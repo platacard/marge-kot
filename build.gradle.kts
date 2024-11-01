@@ -1,5 +1,5 @@
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
-import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
+import org.gradle.api.JavaVersion.VERSION_21
 
 repositories {
   mavenCentral()
@@ -7,7 +7,6 @@ repositories {
 }
 plugins {
   kotlin("jvm") version "2.0.20"
-  id("com.github.johnrengelman.shadow") version "8.1.1"
 }
 dependencies {
   implementation("io.ktor:ktor-server-core-jvm:2.1.3")
@@ -18,9 +17,16 @@ dependencies {
   testImplementation("com.google.truth:truth:1.1.3")
   testImplementation("io.mockk:mockk:1.13.2")
 }
-tasks.withType<KotlinCompile> {
-  kotlinOptions.jvmTarget = "17"
-  kotlinOptions.freeCompilerArgs += "-opt-in=kotlin.time.ExperimentalTime"
+
+java {
+  sourceCompatibility = VERSION_21
+  targetCompatibility = VERSION_21
+}
+kotlin {
+  compilerOptions {
+    jvmTarget = JvmTarget.JVM_21
+    freeCompilerArgs.add("-opt-in=kotlin.time.ExperimentalTime")
+  }
 }
 tasks.test {
   useJUnitPlatform()
@@ -28,11 +34,4 @@ tasks.test {
 tasks.jar {
   isZip64 = true
   manifest.attributes("Main-Class" to "AppKt")
-}
-tasks.shadowJar {
-  minimize() // if build is unsuccessful, you can disable it
-  // also, if build still unsuccessful, you can try to add mergeServiceFiles() call
-}
-tasks.build {
-  dependsOn(tasks.shadowJar)
 }
