@@ -1,10 +1,14 @@
 package marge_kot.executor
 
+import io.ktor.client.HttpClient
+import kotlinx.coroutines.delay
+
 object Executor {
 
-  fun runBot() {
+  suspend fun runBot() {
+    HttpClient()
     while (true) {
-      Thread.sleep(3000)
+      delay(3000)
       println("pupupu")
     }
   }

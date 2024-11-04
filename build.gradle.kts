@@ -9,10 +9,11 @@ plugins {
   kotlin("jvm") version "2.0.20"
 }
 dependencies {
-  implementation("io.ktor:ktor-server-core-jvm:2.1.3")
-  implementation("io.ktor:ktor-server-netty-jvm:2.1.3")
+  implementation("io.ktor:ktor-client-core:3.0.0")
+  implementation("io.ktor:ktor-client-cio:3.0.0")
   implementation("ch.qos.logback:logback-classic:1.4.5")
-  testImplementation("io.ktor:ktor-client-cio:2.1.3")
+  implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.9.0")
+  implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core-jvm:1.9.0")
   testImplementation("org.junit.jupiter:junit-jupiter:5.11.3")
   testImplementation("com.google.truth:truth:1.1.3")
   testImplementation("io.mockk:mockk:1.13.2")
@@ -28,10 +29,11 @@ kotlin {
     freeCompilerArgs.add("-opt-in=kotlin.time.ExperimentalTime")
   }
 }
-tasks.test {
-  useJUnitPlatform()
-}
 tasks.jar {
   isZip64 = true
   manifest.attributes("Main-Class" to "AppKt")
+  configurations["compileClasspath"].forEach { file: File ->
+    from(zipTree(file.absoluteFile))
+  }
+  duplicatesStrategy = DuplicatesStrategy.INCLUDE
 }
