@@ -1,16 +1,22 @@
 import org.gradle.api.JavaVersion.VERSION_17
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 
+val ktorVersion = "3.0.0"
+
 repositories {
   mavenCentral()
   maven("https://jitpack.io")
 }
 plugins {
   kotlin("jvm") version "2.0.20"
+  kotlin("plugin.serialization") version "2.0.20"
 }
 dependencies {
-  implementation("io.ktor:ktor-client-core:3.0.0")
-  implementation("io.ktor:ktor-client-cio:3.0.0")
+  implementation("io.ktor:ktor-client-core:$ktorVersion")
+  implementation("io.ktor:ktor-client-cio:$ktorVersion")
+  implementation("io.ktor:ktor-client-resources:$ktorVersion")
+  implementation("io.ktor:ktor-client-content-negotiation:$ktorVersion")
+  implementation("io.ktor:ktor-serialization-kotlinx-json:$ktorVersion")
   implementation("ch.qos.logback:logback-classic:1.4.5")
   implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.9.0")
   implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core-jvm:1.9.0")
