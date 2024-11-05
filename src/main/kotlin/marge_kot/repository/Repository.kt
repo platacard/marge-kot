@@ -14,27 +14,57 @@ import kotlinx.serialization.json.Json
 import marge_kot.dto.common.Scope
 import marge_kot.dto.common.State
 import marge_kot.dto.merge_request.MergeRequest
+import marge_kot.dto.merge_request.MergeRequestApprovals
+import marge_kot.dto.merge_request.MergeRequestApprovalsRequest
+import marge_kot.dto.merge_request.MergeRequestRequest
 import marge_kot.dto.merge_request.MergeRequestsRequest
+import marge_kot.dto.user.User
+import marge_kot.dto.user.UserRequest
 
 class Repository private constructor(
   private val client: HttpClient
 ) {
 
+  // TODO: move to input params
+  val projectId: String = "20"
+
   constructor(token: String) : this(createClient(token))
 
-  suspend fun hasAnyAssignedOpenedMergeRequests(): Boolean {
+  suspend fun getAssignedOpenedMergeRequests(): List<MergeRequest> {
     try {
       val response = client.get(
         MergeRequestsRequest(
+          projectId = projectId,
           scope = Scope.ASSIGNED_TO_ME,
           state = State.OPENED,
         )
       )
-      return response.body<List<MergeRequest>>().isNotEmpty()
+      return response.body()
     } catch (e: ServerResponseException) {
       println(e.message)
-      return false
+      return emptyList()
     }
+  }
+
+  suspend fun checkIfMergeRequestApproved(mergeRequestId: Long): Boolean {
+    return client.get(
+      MergeRequestApprovalsRequest(
+        parent = MergeRequestRequest(
+          MergeRequestsRequest(
+            scope = null,
+            state = null,
+            projectId = projectId,
+          ),
+          id = mergeRequestId,
+        )
+      )
+    )
+      .body<MergeRequestApprovals>()
+      .approved
+  }
+
+  suspend fun getUserInfo(): User {
+    return client.get(UserRequest()).body()
   }
 }
 
@@ -42,11 +72,15 @@ private fun createClient(token: String): HttpClient {
   return HttpClient(CIO) {
     install(Resources)
     install(ContentNegotiation) {
-      json(Json {
-        ignoreUnknownKeys = true
-      })
+      json(
+        Json {
+          ignoreUnknownKeys = true
+          coerceInputValues = true
+        }
+      )
     }
     defaultRequest {
+      // TODO: move to input params
       url("https://gitlab.diftech.org/api/v4/")
       bearerAuth(token)
     }
