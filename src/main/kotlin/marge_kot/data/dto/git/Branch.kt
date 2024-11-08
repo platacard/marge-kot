@@ -1,8 +1,8 @@
-package marge_kot.dto.git
+package marge_kot.data.dto.git
 
 import io.ktor.resources.Resource
 import kotlinx.serialization.Serializable
-import marge_kot.dto.ProjectRequest
+import marge_kot.data.dto.ProjectRequest
 
 @Resource("repository/branches/{name}")
 data class BranchRequest(

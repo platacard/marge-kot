@@ -1,4 +1,4 @@
-package marge_kot.dto.user
+package marge_kot.data.dto.user
 
 import io.ktor.resources.Resource
 import kotlinx.serialization.SerialName

@@ -1,4 +1,4 @@
-package marge_kot.dto.common
+package marge_kot.data.dto.common
 
 import kotlinx.serialization.SerialName
 

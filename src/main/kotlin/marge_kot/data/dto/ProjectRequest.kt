@@ -1,4 +1,4 @@
-package marge_kot.dto
+package marge_kot.data.dto
 
 import io.ktor.resources.Resource
 

@@ -1,14 +1,15 @@
-package marge_kot.dto.merge_request
+package marge_kot.data.dto.merge_request
 
 import io.ktor.resources.Resource
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
-import marge_kot.dto.common.State
-import marge_kot.dto.user.User
+import marge_kot.data.dto.common.State
+import marge_kot.data.dto.pipeline.Pipeline
+import marge_kot.data.dto.user.User
 
 @Resource("{id}")
 data class MergeRequestRequest(
-  val parent: MergeRequestsRequest,
+  val parent: MergeRequests,
   @SerialName("include_rebase_in_progress")
   val includeRebaseInProgress: Boolean? = null,
   val id: Long
@@ -34,7 +35,8 @@ data class MergeRequest(
   @SerialName("blocking_discussions_resolved")
   val blockingDiscussionsResolved: Boolean,
   @SerialName("rebase_in_progress")
-  val rebaseInProgress: Boolean,
+  val rebaseInProgress: Boolean? = null,
   @SerialName("diff_refs")
-  val diffRefs: DiffRefs,
+  val diffRefs: DiffRefs? = null,
+  val pipeline: Pipeline? = null,
 )

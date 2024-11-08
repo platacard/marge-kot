@@ -1,4 +1,4 @@
-package marge_kot.dto.merge_request
+package marge_kot.data.dto.merge_request
 
 import io.ktor.resources.Resource
 import kotlinx.serialization.Serializable

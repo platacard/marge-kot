@@ -1,4 +1,4 @@
-package marge_kot.dto.git
+package marge_kot.data.dto.git
 
 import kotlinx.serialization.Serializable
 

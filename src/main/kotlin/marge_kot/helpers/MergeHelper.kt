@@ -1,7 +1,7 @@
 package marge_kot.helpers
 
-import marge_kot.dto.merge_request.MergeRequest
-import marge_kot.repository.Repository
+import marge_kot.data.dto.merge_request.MergeRequest
+import marge_kot.data.repository.Repository
 
 class MergeHelper(
   val repository: Repository,
@@ -10,9 +10,11 @@ class MergeHelper(
   suspend fun merge(mergeRequest: MergeRequest) {
     val mergeableChecker = MergeRequestMergeableChecker(repository, mergeRequest.id)
     val rebaseHelper = RebaseHelper(repository, mergeRequest.id)
+    val pipelineWaiter = PipelineWaiter(repository, mergeRequest.id)
     while (true) {
       mergeableChecker.check()
       rebaseHelper.rebaseIfNeeded()
+      pipelineWaiter.waitForPipeline()
       mergeableChecker.check()
     }
   }

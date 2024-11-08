@@ -1,4 +1,4 @@
-package marge_kot.repository
+package marge_kot.data.repository
 
 import io.ktor.client.HttpClient
 import io.ktor.client.call.body
@@ -12,20 +12,22 @@ import io.ktor.client.plugins.resources.put
 import io.ktor.client.request.bearerAuth
 import io.ktor.serialization.kotlinx.json.json
 import kotlinx.serialization.json.Json
-import marge_kot.dto.ProjectRequest
-import marge_kot.dto.common.Scope
-import marge_kot.dto.common.State
-import marge_kot.dto.git.Branch
-import marge_kot.dto.git.BranchRequest
-import marge_kot.dto.merge_request.MergeRequest
-import marge_kot.dto.merge_request.MergeRequestApprovals
-import marge_kot.dto.merge_request.MergeRequestApprovalsRequest
-import marge_kot.dto.merge_request.MergeRequestRequest
-import marge_kot.dto.merge_request.MergeRequestsRequest
-import marge_kot.dto.merge_request.RebaseRequest
-import marge_kot.dto.merge_request.RebaseResult
-import marge_kot.dto.user.User
-import marge_kot.dto.user.UserRequest
+import marge_kot.data.dto.ProjectRequest
+import marge_kot.data.dto.common.Scope
+import marge_kot.data.dto.common.State
+import marge_kot.data.dto.git.Branch
+import marge_kot.data.dto.git.BranchRequest
+import marge_kot.data.dto.merge_request.MergeRequest
+import marge_kot.data.dto.merge_request.MergeRequestApprovals
+import marge_kot.data.dto.merge_request.MergeRequestApprovalsRequest
+import marge_kot.data.dto.merge_request.MergeRequestRequest
+import marge_kot.data.dto.merge_request.MergeRequests
+import marge_kot.data.dto.merge_request.RebaseRequest
+import marge_kot.data.dto.merge_request.RebaseResult
+import marge_kot.data.dto.pipeline.Pipeline
+import marge_kot.data.dto.pipeline.PipelineRequest
+import marge_kot.data.dto.user.User
+import marge_kot.data.dto.user.UserRequest
 
 class Repository private constructor(
   private val client: HttpClient
@@ -40,7 +42,7 @@ class Repository private constructor(
   suspend fun getAssignedOpenedMergeRequests(): List<MergeRequest> {
     try {
       val response = client.get(
-        MergeRequestsRequest(
+        MergeRequests(
           parent = projectRequest,
           scope = Scope.ASSIGNED_TO_ME,
           state = State.OPENED,
@@ -57,7 +59,7 @@ class Repository private constructor(
     return client.get(
       MergeRequestApprovalsRequest(
         parent = MergeRequestRequest(
-          parent = MergeRequestsRequest(
+          parent = MergeRequests(
             scope = null,
             state = null,
             parent = projectRequest
@@ -73,7 +75,7 @@ class Repository private constructor(
   suspend fun getMergeRequest(id: Long): MergeRequest {
     return client.get(
       MergeRequestRequest(
-        parent = MergeRequestsRequest(
+        parent = MergeRequests(
           scope = null,
           state = null,
           parent = ProjectRequest(projectId),
@@ -92,7 +94,7 @@ class Repository private constructor(
     return client.get(
       BranchRequest(
         parent = ProjectRequest(projectId),
-        name = "origin/$branchName"
+        name = branchName,
       )
     ).body()
   }
@@ -101,13 +103,22 @@ class Repository private constructor(
     return client.put(
       RebaseRequest(
         MergeRequestRequest(
-          MergeRequestsRequest(
+          MergeRequests(
             scope = null,
             state = null,
             parent = projectRequest,
           ),
           id = mergeRequestId,
         )
+      )
+    ).body()
+  }
+
+  suspend fun getPipeline(pipelineId: Long): Pipeline {
+    return client.get(
+      PipelineRequest(
+        parent = projectRequest,
+        id = pipelineId
       )
     ).body()
   }
