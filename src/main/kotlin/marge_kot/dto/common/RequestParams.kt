@@ -1,7 +1,6 @@
 package marge_kot.dto.common
 
 import kotlinx.serialization.SerialName
-import kotlinx.serialization.Serializable
 
 enum class Scope {
   @SerialName("created_by_me")
@@ -28,7 +27,3 @@ enum class State {
   @SerialName("merged")
   MERGED,
 }
-
-@Serializable
-@JvmInline
-value class Branch(val name: String)

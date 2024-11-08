@@ -8,16 +8,22 @@ import io.ktor.client.plugins.contentnegotiation.ContentNegotiation
 import io.ktor.client.plugins.defaultRequest
 import io.ktor.client.plugins.resources.Resources
 import io.ktor.client.plugins.resources.get
+import io.ktor.client.plugins.resources.put
 import io.ktor.client.request.bearerAuth
 import io.ktor.serialization.kotlinx.json.json
 import kotlinx.serialization.json.Json
+import marge_kot.dto.ProjectRequest
 import marge_kot.dto.common.Scope
 import marge_kot.dto.common.State
+import marge_kot.dto.git.Branch
+import marge_kot.dto.git.BranchRequest
 import marge_kot.dto.merge_request.MergeRequest
 import marge_kot.dto.merge_request.MergeRequestApprovals
 import marge_kot.dto.merge_request.MergeRequestApprovalsRequest
 import marge_kot.dto.merge_request.MergeRequestRequest
 import marge_kot.dto.merge_request.MergeRequestsRequest
+import marge_kot.dto.merge_request.RebaseRequest
+import marge_kot.dto.merge_request.RebaseResult
 import marge_kot.dto.user.User
 import marge_kot.dto.user.UserRequest
 
@@ -26,7 +32,8 @@ class Repository private constructor(
 ) {
 
   // TODO: move to input params
-  val projectId: String = "20"
+  private val projectId: String = "20"
+  private val projectRequest: ProjectRequest = ProjectRequest(projectId)
 
   constructor(token: String) : this(createClient(token))
 
@@ -34,7 +41,7 @@ class Repository private constructor(
     try {
       val response = client.get(
         MergeRequestsRequest(
-          projectId = projectId,
+          parent = projectRequest,
           scope = Scope.ASSIGNED_TO_ME,
           state = State.OPENED,
         )
@@ -50,10 +57,10 @@ class Repository private constructor(
     return client.get(
       MergeRequestApprovalsRequest(
         parent = MergeRequestRequest(
-          MergeRequestsRequest(
+          parent = MergeRequestsRequest(
             scope = null,
             state = null,
-            projectId = projectId,
+            parent = projectRequest
           ),
           id = mergeRequestId,
         )
@@ -63,8 +70,46 @@ class Repository private constructor(
       .approved
   }
 
+  suspend fun getMergeRequest(id: Long): MergeRequest {
+    return client.get(
+      MergeRequestRequest(
+        parent = MergeRequestsRequest(
+          scope = null,
+          state = null,
+          parent = ProjectRequest(projectId),
+        ),
+        includeRebaseInProgress = true,
+        id = id,
+      )
+    ).body()
+  }
+
   suspend fun getUserInfo(): User {
     return client.get(UserRequest()).body()
+  }
+
+  suspend fun getBranchInfo(branchName: String = "main"): Branch {
+    return client.get(
+      BranchRequest(
+        parent = ProjectRequest(projectId),
+        name = "origin/$branchName"
+      )
+    ).body()
+  }
+
+  suspend fun rebaseMergeRequest(mergeRequestId: Long): RebaseResult {
+    return client.put(
+      RebaseRequest(
+        MergeRequestRequest(
+          MergeRequestsRequest(
+            scope = null,
+            state = null,
+            parent = projectRequest,
+          ),
+          id = mergeRequestId,
+        )
+      )
+    ).body()
   }
 }
 

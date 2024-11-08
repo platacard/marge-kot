@@ -16,10 +16,9 @@ suspend fun main() {
     val assignedOpenedMergeRequests = repository.getAssignedOpenedMergeRequests()
     if (assignedOpenedMergeRequests.isNotEmpty()) {
       val helper = MergeHelper(
-        mergeRequest = assignedOpenedMergeRequests.last(),
         repository = repository,
       )
-      helper.merge()
+      helper.merge(assignedOpenedMergeRequests.last())
     } else {
       println("sleep for ${sleepTimeMs.milliseconds}")
       delay(sleepTimeMs)

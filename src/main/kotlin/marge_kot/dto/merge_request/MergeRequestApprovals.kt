@@ -4,7 +4,7 @@ import io.ktor.resources.Resource
 import kotlinx.serialization.Serializable
 
 @Resource("approvals")
-class MergeRequestApprovalsRequest(val parent: MergeRequestRequest)
+data class MergeRequestApprovalsRequest(val parent: MergeRequestRequest)
 
 @Serializable
 data class MergeRequestApprovals(
