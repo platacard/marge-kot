@@ -1,7 +1,8 @@
 package marge_kot.helpers
 
+import io.github.aakira.napier.Napier
 import kotlinx.coroutines.delay
-import marge_kot.data.repository.Repository
+import marge_kot.data.Repository
 
 class RebaseHelper(
   private val repository: Repository,
@@ -12,19 +13,19 @@ class RebaseHelper(
     var attemptNumber = 0
     while (true) {
       delay(1500)
-      println("Update merge request")
+      Napier.v("Update merge request")
       val mergeRequest = repository.getMergeRequest(mergeRequestId)
       if (mergeRequest.rebaseInProgress == true) {
-        println("Rebase is still in progress, let's wait a little")
+        Napier.v("Rebase is still in progress, let's wait a little")
         continue
       }
-      println("Get last commit from target branch")
+      Napier.v("Get last commit from target branch")
       val targetSha = repository.getBranchInfo(mergeRequest.targetBranch).commit.id
       if (mergeRequest.diffRefs?.baseSha == targetSha) {
-        println("Rebase done")
+        Napier.v("Rebase done")
         return
       }
-      println("Rebase against target")
+      Napier.v("Rebase against target")
       val rebaseResult = repository.rebaseMergeRequest(mergeRequestId)
       if (rebaseResult.mergeError != null) {
         attemptNumber++

@@ -1,8 +1,9 @@
 package marge_kot.helpers
 
+import io.github.aakira.napier.Napier
 import kotlinx.coroutines.delay
+import marge_kot.data.Repository
 import marge_kot.data.dto.pipeline.Pipeline
-import marge_kot.data.repository.Repository
 import marge_kot.utils.CannotMergeException
 
 class PipelineWaiter(
@@ -13,13 +14,13 @@ class PipelineWaiter(
   suspend fun waitForPipeline() {
     while (true) {
       delay(3000)
-      println("Update merge request")
+      Napier.v("Update merge request")
       val mergeRequest = repository.getMergeRequest(mergeRequestId)
-      println("Get pipeline for current merge request")
+      Napier.v("Get pipeline for current merge request")
       val pipeline = mergeRequest.pipeline?.id?.let {
         repository.getPipeline(mergeRequest.pipeline.id)
       } ?: throw NoPipelineFoundException()
-      println("Pipeline status is ${pipeline.status}")
+      Napier.v("Pipeline status is ${pipeline.status}")
       when (pipeline.status) {
         Pipeline.Status.SUCCESS -> return
         Pipeline.Status.FAILED -> throw CannotMergeException("Pipeline failed")

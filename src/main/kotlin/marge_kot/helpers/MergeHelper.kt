@@ -1,7 +1,7 @@
 package marge_kot.helpers
 
+import marge_kot.data.Repository
 import marge_kot.data.dto.merge_request.MergeRequest
-import marge_kot.data.repository.Repository
 
 class MergeHelper(
   val repository: Repository,

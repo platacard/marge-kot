@@ -1,5 +1,6 @@
+import io.github.aakira.napier.Napier
 import kotlinx.coroutines.delay
-import marge_kot.data.repository.Repository
+import marge_kot.data.Repository
 import marge_kot.helpers.MergeHelper
 import marge_kot.utils.getLocalProperty
 import kotlin.time.Duration.Companion.milliseconds
@@ -12,17 +13,17 @@ suspend fun main() {
     getLocalProperty("bearer.token")
   )
   while (true) {
-    println("check if any open merge requests assigned to me")
+    Napier.v("check if any open merge requests assigned to me")
     val assignedOpenedMergeRequests = repository.getAssignedOpenedMergeRequests()
     if (assignedOpenedMergeRequests.isNotEmpty()) {
       val mergeRequest = assignedOpenedMergeRequests.last()
       val helper = MergeHelper(
         repository = repository,
       )
-      println("Merge request with id ${mergeRequest.id} found")
+      Napier.v("Merge request with id ${mergeRequest.id} found")
       helper.merge(mergeRequest)
     } else {
-      println("sleep for ${sleepTimeMs.milliseconds}")
+      Napier.v("sleep for ${sleepTimeMs.milliseconds}")
       delay(sleepTimeMs)
     }
   }

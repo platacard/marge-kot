@@ -1,15 +1,21 @@
-package marge_kot.data.repository
+package marge_kot.data
 
+import io.github.aakira.napier.DebugAntilog
+import io.github.aakira.napier.Napier
 import io.ktor.client.HttpClient
 import io.ktor.client.call.body
 import io.ktor.client.engine.cio.CIO
 import io.ktor.client.plugins.ServerResponseException
 import io.ktor.client.plugins.contentnegotiation.ContentNegotiation
 import io.ktor.client.plugins.defaultRequest
+import io.ktor.client.plugins.logging.LogLevel
+import io.ktor.client.plugins.logging.Logger
+import io.ktor.client.plugins.logging.Logging
 import io.ktor.client.plugins.resources.Resources
 import io.ktor.client.plugins.resources.get
 import io.ktor.client.plugins.resources.put
 import io.ktor.client.request.bearerAuth
+import io.ktor.http.HttpHeaders
 import io.ktor.serialization.kotlinx.json.json
 import kotlinx.serialization.json.Json
 import marge_kot.data.dto.ProjectRequest
@@ -42,31 +48,31 @@ class Repository private constructor(
   suspend fun getAssignedOpenedMergeRequests(): List<MergeRequest> {
     try {
       val response = client.get(
-        MergeRequests(
-          parent = projectRequest,
-          scope = Scope.ASSIGNED_TO_ME,
-          state = State.OPENED,
-        )
+          MergeRequests(
+              parent = projectRequest,
+              scope = Scope.ASSIGNED_TO_ME,
+              state = State.OPENED,
+          )
       )
       return response.body()
     } catch (e: ServerResponseException) {
-      println(e.message)
+        Napier.v(e.message)
       return emptyList()
     }
   }
 
   suspend fun checkIfMergeRequestApproved(mergeRequestId: Long): Boolean {
     return client.get(
-      MergeRequestApprovalsRequest(
-        parent = MergeRequestRequest(
-          parent = MergeRequests(
-            scope = null,
-            state = null,
-            parent = projectRequest
-          ),
-          id = mergeRequestId,
+        MergeRequestApprovalsRequest(
+            parent = MergeRequestRequest(
+                parent = MergeRequests(
+                    scope = null,
+                    state = null,
+                    parent = projectRequest
+                ),
+                id = mergeRequestId,
+            )
         )
-      )
     )
       .body<MergeRequestApprovals>()
       .approved
@@ -74,15 +80,15 @@ class Repository private constructor(
 
   suspend fun getMergeRequest(id: Long): MergeRequest {
     return client.get(
-      MergeRequestRequest(
-        parent = MergeRequests(
-          scope = null,
-          state = null,
-          parent = ProjectRequest(projectId),
-        ),
-        includeRebaseInProgress = true,
-        id = id,
-      )
+        MergeRequestRequest(
+            parent = MergeRequests(
+                scope = null,
+                state = null,
+                parent = ProjectRequest(projectId),
+            ),
+            includeRebaseInProgress = true,
+            id = id,
+        )
     ).body()
   }
 
@@ -92,34 +98,34 @@ class Repository private constructor(
 
   suspend fun getBranchInfo(branchName: String = "main"): Branch {
     return client.get(
-      BranchRequest(
-        parent = ProjectRequest(projectId),
-        name = branchName,
-      )
+        BranchRequest(
+            parent = ProjectRequest(projectId),
+            name = branchName,
+        )
     ).body()
   }
 
   suspend fun rebaseMergeRequest(mergeRequestId: Long): RebaseResult {
     return client.put(
-      RebaseRequest(
-        MergeRequestRequest(
-          MergeRequests(
-            scope = null,
-            state = null,
-            parent = projectRequest,
-          ),
-          id = mergeRequestId,
+        RebaseRequest(
+            MergeRequestRequest(
+                MergeRequests(
+                    scope = null,
+                    state = null,
+                    parent = projectRequest,
+                ),
+                id = mergeRequestId,
+            )
         )
-      )
     ).body()
   }
 
   suspend fun getPipeline(pipelineId: Long): Pipeline {
     return client.get(
-      PipelineRequest(
-        parent = projectRequest,
-        id = pipelineId
-      )
+        PipelineRequest(
+            parent = projectRequest,
+            id = pipelineId
+        )
     ).body()
   }
 }
@@ -135,6 +141,13 @@ private fun createClient(token: String): HttpClient {
         }
       )
     }
+    install(Logging) {
+      level = LogLevel.INFO
+      logger = object : Logger {
+        override fun log(message: String) { Napier.i(message = message) }
+      }
+      sanitizeHeader { header -> header == HttpHeaders.Authorization }
+    }
     defaultRequest {
       // TODO: move to input params
       url("https://gitlab.diftech.org/api/v4/")
@@ -142,5 +155,5 @@ private fun createClient(token: String): HttpClient {
     }
 
     expectSuccess = true
-  }
+  }.also { Napier.base(DebugAntilog()) }
 }

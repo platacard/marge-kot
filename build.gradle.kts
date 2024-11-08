@@ -17,6 +17,8 @@ dependencies {
   implementation("io.ktor:ktor-client-resources:$ktorVersion")
   implementation("io.ktor:ktor-client-content-negotiation:$ktorVersion")
   implementation("io.ktor:ktor-serialization-kotlinx-json:$ktorVersion")
+  implementation("io.ktor:ktor-client-logging:$ktorVersion")
+  implementation("io.github.aakira:napier:2.7.1")
   implementation("ch.qos.logback:logback-classic:1.4.5")
   implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.9.0")
   implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core-jvm:1.9.0")
