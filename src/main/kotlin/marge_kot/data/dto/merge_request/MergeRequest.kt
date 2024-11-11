@@ -21,6 +21,12 @@ data class MergeRequestRequest(
   data class Merge(
     val parent: MergeRequestRequest,
   )
+
+  @Resource("notes")
+  data class Notes(
+    val parent: MergeRequestRequest,
+    val body: String,
+  )
 }
 
 @Serializable

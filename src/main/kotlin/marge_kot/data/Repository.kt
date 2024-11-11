@@ -14,6 +14,7 @@ import io.ktor.client.plugins.logging.Logger
 import io.ktor.client.plugins.logging.Logging
 import io.ktor.client.plugins.resources.Resources
 import io.ktor.client.plugins.resources.get
+import io.ktor.client.plugins.resources.post
 import io.ktor.client.plugins.resources.put
 import io.ktor.client.request.bearerAuth
 import io.ktor.http.HttpHeaders
@@ -143,7 +144,8 @@ class Repository private constructor(
         else -> throw CannotMergeException(response.status.description)
       }
       if (attemptNumber > 3) {
-        throw CannotMergeException(response.status.description)
+        Napier.e("Can't merge: ${response.status.description}")
+        throw CannotMergeException("I can't merge it even after $attemptNumber attempts. Please check logs")
       }
     }
   }
@@ -154,6 +156,18 @@ class Repository private constructor(
         parent = simpleMergeRequestsRequest,
         assigneeIds = newAssignee.joinToString(","),
         id = mergeRequestId,
+      )
+    )
+  }
+
+  suspend fun addCommentToMergeRequest(mergeRequestId: Long, message: String) {
+    client.post(
+      MergeRequestRequest.Notes(
+        parent = MergeRequestRequest(
+          parent = simpleMergeRequestsRequest,
+          id = mergeRequestId,
+        ),
+        body = message,
       )
     )
   }

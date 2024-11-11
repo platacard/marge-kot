@@ -3,8 +3,8 @@ package marge_kot.helpers
 import io.github.aakira.napier.Napier
 import io.ktor.client.plugins.ServerResponseException
 import marge_kot.data.Repository
+import marge_kot.data.dto.CannotMergeException
 import marge_kot.data.dto.NeedRebaseException
-import marge_kot.data.dto.RebaseErrorException
 import marge_kot.data.dto.merge_request.MergeRequest
 
 class MergeHelper(
@@ -23,19 +23,36 @@ class MergeHelper(
         pipelineWaiter.waitForPipeline()
         mergeableChecker.check()
         repository.merge(mergeRequestId)
-      } catch (rebaseEx: RebaseErrorException) {
-        Napier.i("Rebase error: $rebaseEx")
+        return
+      } catch (ex: ServerResponseException) {
+        Napier.e("Something happened with Gitlab: $ex")
+        repository.addCommentToMergeRequest(
+          mergeRequestId = mergeRequestId,
+          message = "Something happened with Gitlab: ${ex.message}"
+        )
         unassignBot(repository, mergeRequestId)
         return
-      } catch (serverResponseEx: ServerResponseException) {
-        Napier.i("Something happened with Gitlab: $serverResponseEx")
-        unassignBot(repository, mergeRequestId)
-        return
-      } catch (needRebaseEx: NeedRebaseException) {
-        Napier.i("Need rebase again")
+      } catch (ex: NeedRebaseException) {
+        Napier.e("Need rebase again")
+        repository.addCommentToMergeRequest(
+          mergeRequestId = mergeRequestId,
+          message = "Hmm, I guess I should try again"
+        )
         continue
+      } catch (ex: CannotMergeException) {
+        Napier.e("Can't merge: $ex")
+        repository.addCommentToMergeRequest(
+          mergeRequestId = mergeRequestId,
+          message = "I can't merge this merge request: ${ex.message}"
+        )
+        unassignBot(repository, mergeRequestId)
+        return
       } catch (ex: Throwable) {
-        Napier.i("Unhandled exception: $ex")
+        Napier.e("Unhandled exception: $ex")
+        repository.addCommentToMergeRequest(
+          mergeRequestId = mergeRequestId,
+          message = "Something bad happened. Please check my logs"
+        )
         unassignBot(repository, mergeRequestId)
         return
       }

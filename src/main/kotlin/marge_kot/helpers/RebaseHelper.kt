@@ -3,7 +3,7 @@ package marge_kot.helpers
 import io.github.aakira.napier.Napier
 import kotlinx.coroutines.delay
 import marge_kot.data.Repository
-import marge_kot.data.dto.RebaseErrorException
+import marge_kot.data.dto.CannotMergeException
 
 class RebaseHelper(
   private val repository: Repository,
@@ -30,7 +30,7 @@ class RebaseHelper(
       val rebaseResult = repository.rebaseMergeRequest(mergeRequestId)
       if (rebaseResult.mergeError != null) {
         attemptNumber++
-        if (attemptNumber > 3) throw RebaseErrorException("Failed to rebase after $attemptNumber attempts")
+        if (attemptNumber > 3) throw CannotMergeException("Failed to rebase after $attemptNumber attempts")
         continue
       }
     }
