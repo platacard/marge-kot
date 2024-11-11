@@ -1,6 +1,5 @@
 package marge_kot.data
 
-import io.github.aakira.napier.DebugAntilog
 import io.github.aakira.napier.Napier
 import io.ktor.client.HttpClient
 import io.ktor.client.call.body
@@ -43,8 +42,7 @@ class Repository private constructor(
   private val client: HttpClient
 ) {
 
-  // TODO: move to input params
-  private val projectId: String = "20"
+  private val projectId: String = System.getenv("MARGE_KOT_PROJECT_ID") ?: error("Please provide project id")
   private val projectRequest: ProjectRequest = ProjectRequest(projectId)
   private val simpleMergeRequestsRequest = MergeRequests(
     parent = projectRequest,
@@ -140,7 +138,7 @@ class Repository private constructor(
       if (response.status.value == 200) return
       when (response.status.value) {
         405, 409, 422 -> throw NeedRebaseException()
-        413 -> attemptNumber++
+        403, 413 -> attemptNumber++
         else -> throw CannotMergeException(response.status.description)
       }
       if (attemptNumber > 3) {
@@ -194,11 +192,11 @@ private fun createClient(token: String): HttpClient {
       sanitizeHeader { header -> header == HttpHeaders.Authorization }
     }
     defaultRequest {
-      // TODO: move to input params
-      url("https://gitlab.diftech.org/api/v4/")
+      val url = System.getenv("MARGE_KOT_BASE_API") ?: error("Please provide gitlab api base url")
+      url(url)
       bearerAuth(token)
     }
 
     expectSuccess = true
-  }.also { Napier.base(DebugAntilog()) }
+  }
 }

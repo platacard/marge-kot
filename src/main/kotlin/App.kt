@@ -1,17 +1,16 @@
+import io.github.aakira.napier.DebugAntilog
 import io.github.aakira.napier.Napier
 import kotlinx.coroutines.delay
 import marge_kot.data.Repository
 import marge_kot.helpers.MergeHelper
-import marge_kot.utils.getLocalProperty
 import kotlin.time.Duration.Companion.milliseconds
 
 private const val sleepTimeMs = 30_000L
 
 suspend fun main() {
-  val repository = Repository(
-    // TODO: move to input params
-    getLocalProperty("bearer.token")
-  )
+  initLogger()
+  val bearer = System.getenv("MARGE_KOT_AUTH_TOKEN") ?: error("Please provide auth token for Gitlab")
+  val repository = Repository(bearer)
   while (true) {
     Napier.v("check if any open merge requests assigned to me")
     val assignedOpenedMergeRequests = repository.getAssignedOpenedMergeRequests()
@@ -27,4 +26,8 @@ suspend fun main() {
       delay(sleepTimeMs)
     }
   }
+}
+
+private fun initLogger() {
+  Napier.base(DebugAntilog())
 }
