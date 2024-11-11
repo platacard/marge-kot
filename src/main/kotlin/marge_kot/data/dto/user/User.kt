@@ -9,7 +9,7 @@ class UserRequest
 
 @Serializable
 data class User(
-  val id: Int,
+  val id: Long,
   val name: String,
   @SerialName("username")
   val userName: String,

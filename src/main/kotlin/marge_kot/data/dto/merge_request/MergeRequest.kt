@@ -12,7 +12,9 @@ data class MergeRequestRequest(
   val parent: MergeRequests,
   @SerialName("include_rebase_in_progress")
   val includeRebaseInProgress: Boolean? = null,
-  val id: Long
+  val id: Long,
+  @SerialName("assignee_ids")
+  val assigneeIds: String? = null,
 ) {
 
   @Resource("merge")

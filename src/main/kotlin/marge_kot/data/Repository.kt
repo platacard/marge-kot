@@ -147,6 +147,16 @@ class Repository private constructor(
       }
     }
   }
+
+  suspend fun assignMergeRequestTo(mergeRequestId: Long, newAssignee: LongArray) {
+    client.put(
+      MergeRequestRequest(
+        parent = simpleMergeRequestsRequest,
+        assigneeIds = newAssignee.joinToString(","),
+        id = mergeRequestId,
+      )
+    )
+  }
 }
 
 private fun createClient(token: String): HttpClient {

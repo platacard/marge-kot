@@ -25,18 +25,18 @@ class MergeHelper(
         repository.merge(mergeRequestId)
       } catch (rebaseEx: RebaseErrorException) {
         Napier.i("Rebase error: $rebaseEx")
-        // TODO: unassign
+        unassignBot(repository, mergeRequestId)
         return
       } catch (serverResponseEx: ServerResponseException) {
         Napier.i("Something happened with Gitlab: $serverResponseEx")
-        // TODO: unassign
+        unassignBot(repository, mergeRequestId)
         return
       } catch (needRebaseEx: NeedRebaseException) {
         Napier.i("Need rebase again")
         continue
       } catch (ex: Throwable) {
         Napier.i("Unhandled exception: $ex")
-        // TODO: unassign
+        unassignBot(repository, mergeRequestId)
         return
       }
     }
