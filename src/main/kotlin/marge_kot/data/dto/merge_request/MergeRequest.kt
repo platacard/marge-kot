@@ -13,7 +13,13 @@ data class MergeRequestRequest(
   @SerialName("include_rebase_in_progress")
   val includeRebaseInProgress: Boolean? = null,
   val id: Long
-)
+) {
+
+  @Resource("merge")
+  data class Merge(
+    val parent: MergeRequestRequest,
+  )
+}
 
 @Serializable
 data class MergeRequest(

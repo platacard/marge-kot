@@ -3,6 +3,7 @@ package marge_kot.helpers
 import io.github.aakira.napier.Napier
 import kotlinx.coroutines.delay
 import marge_kot.data.Repository
+import marge_kot.data.dto.RebaseErrorException
 
 class RebaseHelper(
   private val repository: Repository,
@@ -35,5 +36,3 @@ class RebaseHelper(
     }
   }
 }
-
-class RebaseErrorException(override val message: String): Throwable(message)

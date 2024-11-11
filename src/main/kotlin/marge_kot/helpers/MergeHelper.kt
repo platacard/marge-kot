@@ -1,6 +1,10 @@
 package marge_kot.helpers
 
+import io.github.aakira.napier.Napier
+import io.ktor.client.plugins.ServerResponseException
 import marge_kot.data.Repository
+import marge_kot.data.dto.NeedRebaseException
+import marge_kot.data.dto.RebaseErrorException
 import marge_kot.data.dto.merge_request.MergeRequest
 
 class MergeHelper(
@@ -8,14 +12,33 @@ class MergeHelper(
 ) {
 
   suspend fun merge(mergeRequest: MergeRequest) {
-    val mergeableChecker = MergeRequestMergeableChecker(repository, mergeRequest.id)
-    val rebaseHelper = RebaseHelper(repository, mergeRequest.id)
-    val pipelineWaiter = PipelineWaiter(repository, mergeRequest.id)
+    val mergeRequestId = mergeRequest.id
+    val mergeableChecker = MergeRequestMergeableChecker(repository, mergeRequestId)
+    val rebaseHelper = RebaseHelper(repository, mergeRequestId)
+    val pipelineWaiter = PipelineWaiter(repository, mergeRequestId)
     while (true) {
-      mergeableChecker.check()
-      rebaseHelper.rebaseIfNeeded()
-      pipelineWaiter.waitForPipeline()
-      mergeableChecker.check()
+      try {
+        mergeableChecker.check()
+        rebaseHelper.rebaseIfNeeded()
+        pipelineWaiter.waitForPipeline()
+        mergeableChecker.check()
+        repository.merge(mergeRequestId)
+      } catch (rebaseEx: RebaseErrorException) {
+        Napier.i("Rebase error: $rebaseEx")
+        // TODO: unassign
+        return
+      } catch (serverResponseEx: ServerResponseException) {
+        Napier.i("Something happened with Gitlab: $serverResponseEx")
+        // TODO: unassign
+        return
+      } catch (needRebaseEx: NeedRebaseException) {
+        Napier.i("Need rebase again")
+        continue
+      } catch (ex: Throwable) {
+        Napier.i("Unhandled exception: $ex")
+        // TODO: unassign
+        return
+      }
     }
   }
 }

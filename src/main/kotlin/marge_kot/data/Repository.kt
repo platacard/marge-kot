@@ -8,6 +8,7 @@ import io.ktor.client.engine.cio.CIO
 import io.ktor.client.plugins.ServerResponseException
 import io.ktor.client.plugins.contentnegotiation.ContentNegotiation
 import io.ktor.client.plugins.defaultRequest
+import io.ktor.client.plugins.expectSuccess
 import io.ktor.client.plugins.logging.LogLevel
 import io.ktor.client.plugins.logging.Logger
 import io.ktor.client.plugins.logging.Logging
@@ -18,6 +19,8 @@ import io.ktor.client.request.bearerAuth
 import io.ktor.http.HttpHeaders
 import io.ktor.serialization.kotlinx.json.json
 import kotlinx.serialization.json.Json
+import marge_kot.data.dto.CannotMergeException
+import marge_kot.data.dto.NeedRebaseException
 import marge_kot.data.dto.ProjectRequest
 import marge_kot.data.dto.common.Scope
 import marge_kot.data.dto.common.State
@@ -42,37 +45,38 @@ class Repository private constructor(
   // TODO: move to input params
   private val projectId: String = "20"
   private val projectRequest: ProjectRequest = ProjectRequest(projectId)
+  private val simpleMergeRequestsRequest = MergeRequests(
+    parent = projectRequest,
+    state = null,
+    scope = null,
+  )
 
   constructor(token: String) : this(createClient(token))
 
   suspend fun getAssignedOpenedMergeRequests(): List<MergeRequest> {
     try {
       val response = client.get(
-          MergeRequests(
-              parent = projectRequest,
-              scope = Scope.ASSIGNED_TO_ME,
-              state = State.OPENED,
-          )
+        MergeRequests(
+          parent = projectRequest,
+          scope = Scope.ASSIGNED_TO_ME,
+          state = State.OPENED,
+        )
       )
       return response.body()
     } catch (e: ServerResponseException) {
-        Napier.v(e.message)
+      Napier.v(e.message)
       return emptyList()
     }
   }
 
   suspend fun checkIfMergeRequestApproved(mergeRequestId: Long): Boolean {
     return client.get(
-        MergeRequestApprovalsRequest(
-            parent = MergeRequestRequest(
-                parent = MergeRequests(
-                    scope = null,
-                    state = null,
-                    parent = projectRequest
-                ),
-                id = mergeRequestId,
-            )
+      MergeRequestApprovalsRequest(
+        parent = MergeRequestRequest(
+          parent = simpleMergeRequestsRequest,
+          id = mergeRequestId,
         )
+      )
     )
       .body<MergeRequestApprovals>()
       .approved
@@ -80,15 +84,11 @@ class Repository private constructor(
 
   suspend fun getMergeRequest(id: Long): MergeRequest {
     return client.get(
-        MergeRequestRequest(
-            parent = MergeRequests(
-                scope = null,
-                state = null,
-                parent = ProjectRequest(projectId),
-            ),
-            includeRebaseInProgress = true,
-            id = id,
-        )
+      MergeRequestRequest(
+        parent = simpleMergeRequestsRequest,
+        includeRebaseInProgress = true,
+        id = id,
+      )
     ).body()
   }
 
@@ -98,35 +98,54 @@ class Repository private constructor(
 
   suspend fun getBranchInfo(branchName: String = "main"): Branch {
     return client.get(
-        BranchRequest(
-            parent = ProjectRequest(projectId),
-            name = branchName,
-        )
+      BranchRequest(
+        parent = ProjectRequest(projectId),
+        name = branchName,
+      )
     ).body()
   }
 
   suspend fun rebaseMergeRequest(mergeRequestId: Long): RebaseResult {
     return client.put(
-        RebaseRequest(
-            MergeRequestRequest(
-                MergeRequests(
-                    scope = null,
-                    state = null,
-                    parent = projectRequest,
-                ),
-                id = mergeRequestId,
-            )
+      RebaseRequest(
+        MergeRequestRequest(
+          parent = simpleMergeRequestsRequest,
+          id = mergeRequestId,
         )
+      )
     ).body()
   }
 
   suspend fun getPipeline(pipelineId: Long): Pipeline {
     return client.get(
-        PipelineRequest(
-            parent = projectRequest,
-            id = pipelineId
-        )
+      PipelineRequest(
+        parent = projectRequest,
+        id = pipelineId
+      )
     ).body()
+  }
+
+  suspend fun merge(mergeRequestId: Long) {
+    var attemptNumber = 1
+    while (true) {
+      val response = client.put(
+        MergeRequestRequest.Merge(
+          parent = MergeRequestRequest(
+            parent = simpleMergeRequestsRequest,
+            id = mergeRequestId,
+          )
+        )
+      ) { expectSuccess = false }
+      if (response.status.value == 200) return
+      when (response.status.value) {
+        405, 409, 422 -> throw NeedRebaseException()
+        413 -> attemptNumber++
+        else -> throw CannotMergeException(response.status.description)
+      }
+      if (attemptNumber > 3) {
+        throw CannotMergeException(response.status.description)
+      }
+    }
   }
 }
 
@@ -144,7 +163,9 @@ private fun createClient(token: String): HttpClient {
     install(Logging) {
       level = LogLevel.INFO
       logger = object : Logger {
-        override fun log(message: String) { Napier.i(message = message) }
+        override fun log(message: String) {
+          Napier.i(message = message)
+        }
       }
       sanitizeHeader { header -> header == HttpHeaders.Authorization }
     }
