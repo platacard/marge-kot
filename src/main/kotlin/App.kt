@@ -1,8 +1,8 @@
-import io.github.aakira.napier.DebugAntilog
 import io.github.aakira.napier.Napier
 import kotlinx.coroutines.delay
 import marge_kot.data.Repository
 import marge_kot.helpers.MergeHelper
+import marge_kot.utils.log.SimpleAntilog
 import kotlin.time.Duration.Companion.milliseconds
 
 private const val sleepTimeMs = 30_000L
@@ -27,5 +27,5 @@ suspend fun main() {
 }
 
 private fun initLogger() {
-  Napier.base(DebugAntilog())
+  Napier.base(SimpleAntilog())
 }

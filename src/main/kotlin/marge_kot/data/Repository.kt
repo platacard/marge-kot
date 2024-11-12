@@ -9,15 +9,13 @@ import io.ktor.client.plugins.ServerResponseException
 import io.ktor.client.plugins.contentnegotiation.ContentNegotiation
 import io.ktor.client.plugins.defaultRequest
 import io.ktor.client.plugins.expectSuccess
-import io.ktor.client.plugins.logging.LogLevel
-import io.ktor.client.plugins.logging.Logger
 import io.ktor.client.plugins.logging.Logging
+import io.ktor.client.plugins.logging.LoggingConfig
 import io.ktor.client.plugins.resources.Resources
 import io.ktor.client.plugins.resources.get
 import io.ktor.client.plugins.resources.post
 import io.ktor.client.plugins.resources.put
 import io.ktor.client.request.bearerAuth
-import io.ktor.http.HttpHeaders
 import io.ktor.serialization.kotlinx.json.json
 import kotlinx.serialization.json.Json
 import marge_kot.data.dto.CannotMergeException
@@ -38,6 +36,7 @@ import marge_kot.data.dto.pipeline.Pipeline
 import marge_kot.data.dto.pipeline.PipelineRequest
 import marge_kot.data.dto.user.User
 import marge_kot.data.dto.user.UserRequest
+import marge_kot.utils.log.configureLogger
 
 class Repository private constructor(
   private val client: HttpClient
@@ -183,15 +182,7 @@ private fun createClient(token: String): HttpClient {
         }
       )
     }
-    install(Logging) {
-      level = LogLevel.INFO
-      logger = object : Logger {
-        override fun log(message: String) {
-          Napier.i(message = message)
-        }
-      }
-      sanitizeHeader { header -> header == HttpHeaders.Authorization }
-    }
+    install(plugin = Logging, configure = LoggingConfig::configureLogger)
     install(HttpRequestRetry) {
       retryOnException(maxRetries = 5)
       exponentialDelay()
