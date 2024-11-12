@@ -21,6 +21,14 @@ class RebaseHelper(
         continue
       }
       Napier.v("Get last commit from target branch")
+      mergeRequest.checkForNoConflicts()
+      mergeRequest.checkIfUpdated(
+        repository = repository,
+        onUpdated = {
+          Napier.v("Rebase done")
+          return
+        }
+      )
       val targetSha = repository.getBranchInfo(mergeRequest.targetBranch).commit.id
       if (mergeRequest.diffRefs?.baseSha == targetSha) {
         Napier.v("Rebase done")

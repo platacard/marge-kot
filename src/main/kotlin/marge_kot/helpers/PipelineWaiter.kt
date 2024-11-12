@@ -17,6 +17,11 @@ class PipelineWaiter(
       delay(3000)
       Napier.v("Update merge request")
       val mergeRequest = repository.getMergeRequest(mergeRequestId)
+      mergeRequest.checkForNoConflicts()
+      mergeRequest.checkIfUpdated(
+        repository = repository,
+        onOutdated = { throw NeedRebaseException() }
+      )
       Napier.v("Get pipeline for current merge request")
       val pipeline = mergeRequest.pipeline?.id?.let {
         repository.getPipeline(mergeRequest.pipeline.id)
