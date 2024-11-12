@@ -4,6 +4,7 @@ import io.github.aakira.napier.Napier
 import io.ktor.client.HttpClient
 import io.ktor.client.call.body
 import io.ktor.client.engine.cio.CIO
+import io.ktor.client.plugins.HttpRequestRetry
 import io.ktor.client.plugins.ServerResponseException
 import io.ktor.client.plugins.contentnegotiation.ContentNegotiation
 import io.ktor.client.plugins.defaultRequest
@@ -191,6 +192,11 @@ private fun createClient(token: String): HttpClient {
       }
       sanitizeHeader { header -> header == HttpHeaders.Authorization }
     }
+    install(HttpRequestRetry) {
+      retryOnException(maxRetries = 5)
+      exponentialDelay()
+    }
+
     defaultRequest {
       val url = System.getenv("MARGE_KOT_BASE_API") ?: error("Please provide gitlab api base url")
       url(url)
