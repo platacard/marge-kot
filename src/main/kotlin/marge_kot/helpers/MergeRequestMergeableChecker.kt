@@ -26,6 +26,9 @@ class MergeRequestMergeableChecker(
       Napier.v("Check if there any blocking discussions")
       if (!blockingDiscussionsResolved) throw CannotMergeException("Blocking discussions are not resolved")
 
+      Napier.v("Check if has any conflicts")
+      if (hasConflicts == true) throw CannotMergeException("You have conflicts with target branch")
+
       Napier.v("Check if bot is still assigned")
       checkIfBotStillAssigned()
     }

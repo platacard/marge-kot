@@ -16,9 +16,7 @@ suspend fun main() {
     val assignedOpenedMergeRequests = repository.getAssignedOpenedMergeRequests()
     if (assignedOpenedMergeRequests.isNotEmpty()) {
       val mergeRequest = assignedOpenedMergeRequests.last()
-      val helper = MergeHelper(
-        repository = repository,
-      )
+      val helper = MergeHelper(repository)
       Napier.v("Merge request with id ${mergeRequest.id} found")
       helper.merge(mergeRequest)
     } else {

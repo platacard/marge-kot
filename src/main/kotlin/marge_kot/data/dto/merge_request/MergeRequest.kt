@@ -53,4 +53,6 @@ data class MergeRequest(
   @SerialName("diff_refs")
   val diffRefs: DiffRefs? = null,
   val pipeline: Pipeline? = null,
+  @SerialName("has_conflicts")
+  val hasConflicts: Boolean? = null,
 )
