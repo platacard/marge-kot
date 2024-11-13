@@ -5,7 +5,6 @@ import io.ktor.client.HttpClient
 import io.ktor.client.call.body
 import io.ktor.client.engine.cio.CIO
 import io.ktor.client.plugins.HttpRequestRetry
-import io.ktor.client.plugins.ServerResponseException
 import io.ktor.client.plugins.contentnegotiation.ContentNegotiation
 import io.ktor.client.plugins.defaultRequest
 import io.ktor.client.plugins.expectSuccess
@@ -52,18 +51,21 @@ class Repository private constructor(
 
   constructor(token: String) : this(createClient(token))
 
-  suspend fun getAssignedOpenedMergeRequests(): List<MergeRequest> {
+  suspend fun getAssignedOpenedMergeRequests(
+    targetBranch: String? = null,
+  ): List<MergeRequest> {
     try {
       val response = client.get(
         MergeRequests(
           parent = projectRequest,
           scope = Scope.ASSIGNED_TO_ME,
           state = State.OPENED,
+          targetBranch = targetBranch,
         )
       )
       return response.body()
-    } catch (e: ServerResponseException) {
-      Napier.v(e.message)
+    } catch (e: Throwable) {
+      Napier.e(e.message ?: "Empty message on call merge requests")
       return emptyList()
     }
   }
