@@ -6,5 +6,5 @@ RUN gradle clean build
 
 FROM openjdk as backend
 WORKDIR /root
-COPY --from=builder /project/build/libs/*-all.jar ./app
-ENTRYPOINT ["java", "-jar", "/root/app"]
+COPY --from=builder /project/build/libs/*.jar ./app.jar
+ENTRYPOINT ["java", "-jar", "/root/app.jar"]
