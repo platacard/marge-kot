@@ -23,9 +23,15 @@ class PipelineWaiter(
         onOutdated = { throw NeedRebaseException() }
       )
       Napier.v("Get pipeline for current merge request")
-      val pipeline = mergeRequest.pipeline?.id?.let {
-        repository.getPipeline(mergeRequest.pipeline.id)
+      val mergeRequestPipeline = mergeRequest.pipeline
+      val pipeline = mergeRequestPipeline?.id?.let {
+        repository.getPipeline(mergeRequestPipeline.id)
       } ?: throw NeedRebaseException()
+      Napier.v("Check if pipeline is actual")
+      if (mergeRequest.diffRefs?.headSha != pipeline.sha) {
+        Napier.v("Need to wait for a fresh pipeline")
+        continue
+      }
       Napier.v("Pipeline status is ${pipeline.status}")
       when (pipeline.status) {
         Pipeline.Status.SUCCESS -> return
