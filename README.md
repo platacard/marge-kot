@@ -1,28 +1,33 @@
-# Service
+# Marge Kot 🐱
 
-Kotlin microservice template produces self-executable jar application. For brevity, double-space
-formatting is used. [`Ktor`](https://ktor.io/) is included to mock Digital Ocean healthy checks.
+Marge KOT is a bot written in Kotlin that helps automatically merge Merge Requests in GitLab when using semi-linear history or fast-forward merge strategies.
 
-## Usage
+If your project requires the target branch to always be up-to-date before merging, Marge KOT will handle the rebase and automatic update of the MR before merging.
 
-1. Make sure you are signed in to your GitHub account, then just
-   click [`here`](https://github.com/demidko/service/generate) to use template.
-2. `App.kt` file is entry point.
+## Configuration
+Before using, you need to configure the bot by setting the following environment variables:
 
-## Build with Java
+- `MARGE_KOT_PROJECT_ID` — The GitLab project ID that the bot will work with. In GitLab CI/CD, this corresponds to `CI_PROJECT_ID`.
+- `MARGE_KOT_AUTH_TOKEN` — The authentication token that allows the bot to interact with your repository:
+    - Push commits to the Merge Request during a rebase;
+    - Merge the updated Merge Request into the target branch.
+- `MARGE_KOT_TARGET_BRANCH` — The target branch that the bot will work with. For example, if your Merge Requests are directed to `main`, specify `main`. Regex is not supported.
+- `MARGE_KOT_BASE_API` — The base URL for interacting with your GitLab API. Example: `https://gitlab.com/api/v4/`.
 
-Execute `./gradlew clean build`. Your jar will be located at `./build/libs` with `-all.jar` postfix.
-Now you can run:
+## Running
 
-```shell
-java -jar service-all.jar
+### In Docker
+The bot comes with a `Dockerfile`, making it easy to run in a container, such as in CI/CD.
+
+### Local Execution
+To run the bot locally, you first need to build the JAR file:
+
+```sh
+./gradlew build
 ```
 
-## Or, build with Docker
+After a successful build, you can run the JAR using:
 
-Execute `docker build . -t service`. Your image will be located at `docker images -a`. Now you can
-run:
-
-```shell
-docker run -v `pwd`:`pwd` -w `pwd` -it --rm -p 80:80 service
+```sh
+java -jar --enable-preview build/libs/marge-kot.jar
 ```
