@@ -14,7 +14,7 @@ suspend fun main() {
   while (true) {
     Napier.v("check if any open merge requests assigned to me")
     val assignedOpenedMergeRequests = repository.getAssignedOpenedMergeRequests(
-      targetBranch = System.getenv("MARGE_KOT_TARGET_BRANCH")
+      targetBranch = System.getenv("MARGE_KOT_TARGET_BRANCH") ?: error("Please provide target branch")
     )
     if (assignedOpenedMergeRequests.isNotEmpty()) {
       val mergeRequest = assignedOpenedMergeRequests.last()
