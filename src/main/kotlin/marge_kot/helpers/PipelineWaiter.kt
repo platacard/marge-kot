@@ -43,7 +43,7 @@ class PipelineWaiter(
         when (pipeline.status) {
           Pipeline.Status.SUCCESS -> return@coroutineScope
           Pipeline.Status.FAILED -> throw CannotMergeException("Pipeline failed")
-          Pipeline.Status.CANCELED -> throw NeedRebaseException()
+          Pipeline.Status.CANCELED -> throw CannotMergeException("Pipeline was canceled")
           Pipeline.Status.SKIPPED -> throw NeedRebaseException()
           else -> continue
         }
