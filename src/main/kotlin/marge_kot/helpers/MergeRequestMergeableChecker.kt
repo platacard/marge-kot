@@ -11,7 +11,7 @@ class MergeRequestMergeableChecker(
   private val mergeRequestId: Long
 ) {
   suspend fun check() {
-    Napier.v("Update merge request")
+    Napier.v("Fetch merge request")
     val mergeRequest = repository.getMergeRequest(mergeRequestId)
     with(mergeRequest) {
       Napier.v("Check if merge request already merged")

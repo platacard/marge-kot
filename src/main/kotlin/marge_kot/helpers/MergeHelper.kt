@@ -15,7 +15,7 @@ class MergeHelper(
     val mergeRequestId = mergeRequest.id
     val mergeableChecker = MergeRequestMergeableChecker(repository, mergeRequestId)
     val rebaseHelper = RebaseHelper(repository, mergeRequestId)
-    val pipelineWaiter = PipelineWaiter(repository, mergeRequestId)
+    val pipelineWaiter = PipelineWaiter(repository, mergeRequestId, mergeableChecker)
     while (true) {
       try {
         mergeableChecker.check()
