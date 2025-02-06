@@ -27,3 +27,19 @@ enum class State {
   @SerialName("merged")
   MERGED,
 }
+
+enum class OrderBy {
+  @SerialName("updated_at")
+  UPDATED_AT,
+
+  @SerialName("created_at")
+  CREATED_AT,
+}
+
+enum class Sort {
+  @SerialName("desc")
+  DESCENDING,
+
+  @SerialName("asc")
+  ASCENDING
+}

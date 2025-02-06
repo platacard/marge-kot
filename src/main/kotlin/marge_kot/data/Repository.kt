@@ -20,7 +20,9 @@ import kotlinx.serialization.json.Json
 import marge_kot.data.dto.CannotMergeException
 import marge_kot.data.dto.NeedRebaseException
 import marge_kot.data.dto.ProjectRequest
+import marge_kot.data.dto.common.OrderBy
 import marge_kot.data.dto.common.Scope
+import marge_kot.data.dto.common.Sort
 import marge_kot.data.dto.common.State
 import marge_kot.data.dto.git.Branch
 import marge_kot.data.dto.git.BranchRequest
@@ -61,6 +63,8 @@ class Repository private constructor(
           scope = Scope.ASSIGNED_TO_ME,
           state = State.OPENED,
           targetBranch = targetBranch,
+          orderBy = OrderBy.UPDATED_AT,
+          sort = Sort.ASCENDING,
         )
       )
       return response.body()
