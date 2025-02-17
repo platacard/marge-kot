@@ -12,6 +12,7 @@ import marge_kot.data.dto.common.State
 class MergeRequests(
   val parent: ProjectRequest,
   val state: State?,
+  @SerialName("order_by")
   val orderBy: OrderBy = OrderBy.CREATED_AT,
   val scope: Scope? = Scope.ALL,
   val sort: Sort = Sort.DESCENDING,

@@ -17,7 +17,7 @@ suspend fun main() {
       targetBranch = System.getenv("MARGE_KOT_TARGET_BRANCH") ?: error("Please provide target branch")
     )
     if (assignedOpenedMergeRequests.isNotEmpty()) {
-      val mergeRequest = assignedOpenedMergeRequests.last()
+      val mergeRequest = assignedOpenedMergeRequests.first()
       val helper = MergeHelper(repository)
       Napier.v("Merge request with id ${mergeRequest.id} found")
       helper.merge(mergeRequest)
