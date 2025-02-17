@@ -52,6 +52,7 @@ data class MergeRequest(
   val rebaseInProgress: Boolean? = null,
   @SerialName("diff_refs")
   val diffRefs: DiffRefs? = null,
+  @SerialName("head_pipeline")
   val pipeline: Pipeline? = null,
   @SerialName("has_conflicts")
   val hasConflicts: Boolean? = null,
