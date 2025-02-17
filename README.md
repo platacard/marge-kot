@@ -13,6 +13,7 @@ Before using, you need to configure the bot by setting the following environment
     - Merge the updated Merge Request into the target branch.
 - `MARGE_KOT_TARGET_BRANCH` — The target branch that the bot will work with. For example, if your Merge Requests are directed to `main`, specify `main`. Regex is not supported.
 - `MARGE_KOT_BASE_API` — The base URL for interacting with your GitLab API. Example: `https://gitlab.com/api/v4/`.
+- `MARGE_KOT_ADD_REQUEST_LOGS` — Enable logging of network requests and responses.
 
 ## Running
 
