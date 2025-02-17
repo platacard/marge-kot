@@ -188,7 +188,10 @@ private fun createClient(token: String): HttpClient {
         }
       )
     }
-    install(plugin = Logging, configure = LoggingConfig::configureLogger)
+    val debuggable = System.getenv("MARGE_KOT_ADD_REQUEST_LOGS").toBoolean()
+    if (debuggable) {
+      install(plugin = Logging, configure = LoggingConfig::configureLogger)
+    }
     install(HttpRequestRetry) {
       retryOnException(maxRetries = 5)
       exponentialDelay()
