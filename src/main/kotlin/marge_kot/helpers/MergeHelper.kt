@@ -1,6 +1,7 @@
 package marge_kot.helpers
 
 import io.github.aakira.napier.Napier
+import io.ktor.client.plugins.HttpRequestTimeoutException
 import io.ktor.client.plugins.ServerResponseException
 import marge_kot.data.Repository
 import marge_kot.data.dto.CannotMergeException
@@ -29,6 +30,14 @@ class MergeHelper(
         repository.addCommentToMergeRequest(
           mergeRequestId = mergeRequestId,
           message = "Something happened with Gitlab: ${ex.message}"
+        )
+        unassignBot(repository, mergeRequestId)
+        return
+      } catch (ex: HttpRequestTimeoutException) {
+        Napier.e("Request timeout: $ex")
+        repository.addCommentToMergeRequest(
+          mergeRequestId = mergeRequestId,
+          message = "Gitlab is not responding: ${ex.message}"
         )
         unassignBot(repository, mergeRequestId)
         return
