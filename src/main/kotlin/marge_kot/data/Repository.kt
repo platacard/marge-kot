@@ -7,7 +7,6 @@ import io.ktor.client.engine.cio.CIO
 import io.ktor.client.plugins.HttpRequestRetry
 import io.ktor.client.plugins.contentnegotiation.ContentNegotiation
 import io.ktor.client.plugins.defaultRequest
-import io.ktor.client.plugins.expectSuccess
 import io.ktor.client.plugins.logging.Logging
 import io.ktor.client.plugins.logging.LoggingConfig
 import io.ktor.client.plugins.resources.Resources
@@ -17,8 +16,6 @@ import io.ktor.client.plugins.resources.put
 import io.ktor.client.request.bearerAuth
 import io.ktor.serialization.kotlinx.json.json
 import kotlinx.serialization.json.Json
-import marge_kot.data.dto.CannotMergeException
-import marge_kot.data.dto.NeedRebaseException
 import marge_kot.data.dto.ProjectRequest
 import marge_kot.data.dto.common.OrderBy
 import marge_kot.data.dto.common.Scope
@@ -131,27 +128,14 @@ class Repository private constructor(
   }
 
   suspend fun merge(mergeRequestId: Long) {
-    var attemptNumber = 1
-    while (true) {
-      val response = client.put(
-        MergeRequestRequest.Merge(
-          parent = MergeRequestRequest(
-            parent = simpleMergeRequestsRequest,
-            id = mergeRequestId,
-          )
+    client.put(
+      MergeRequestRequest.Merge(
+        parent = MergeRequestRequest(
+          parent = simpleMergeRequestsRequest,
+          id = mergeRequestId,
         )
-      ) { expectSuccess = false }
-      if (response.status.value == 200) return
-      when (response.status.value) {
-        405, 409, 422 -> throw NeedRebaseException()
-        403, 413 -> attemptNumber++
-        else -> throw CannotMergeException(response.status.description)
-      }
-      if (attemptNumber > 3) {
-        Napier.e("Can't merge: ${response.status.description}")
-        throw CannotMergeException("I can't merge it even after $attemptNumber attempts. Please check logs")
-      }
-    }
+      )
+    )
   }
 
   suspend fun assignMergeRequestTo(mergeRequestId: Long, newAssignee: LongArray) {
