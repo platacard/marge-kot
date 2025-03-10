@@ -6,7 +6,7 @@ import kotlinx.serialization.Serializable
 @Serializable
 data class DiffRefs(
   @SerialName("base_sha")
-  val baseSha: String,
+  val baseSha: String?,
   @SerialName("head_sha")
-  val headSha: String,
+  val headSha: String?,
 )
