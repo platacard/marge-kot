@@ -24,7 +24,7 @@ The bot comes with a `Dockerfile`, making it easy to run in a container, such as
 To run the bot locally, you first need to build the JAR file:
 
 ```sh
-./gradlew build
+gradle clean build
 ```
 
 After a successful build, you can run the JAR using:
