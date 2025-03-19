@@ -17,5 +17,7 @@ class MergeRequests(
   val scope: Scope? = Scope.ALL,
   val sort: Sort = Sort.DESCENDING,
   @SerialName("target_branch")
-  val targetBranch: String? = null
+  val targetBranch: String? = null,
+  @SerialName("labels")
+  val label: String? = null,
 )

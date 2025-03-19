@@ -8,10 +8,8 @@ import marge_kot.data.dto.merge_request.MergeStatus
 
 class MergeRequestMergeableChecker(
   private val repository: Repository,
-  private val mergeRequestId: Long
 ) {
-  suspend fun check() {
-    Napier.v("Fetch merge request")
+  suspend fun check(assignCheckIsNeeded: Boolean, mergeRequestId: Long) {
     val mergeRequest = repository.getMergeRequest(mergeRequestId)
     with(mergeRequest) {
       Napier.v("Check if merge request already merged")
@@ -27,9 +25,10 @@ class MergeRequestMergeableChecker(
       if (!blockingDiscussionsResolved) throw CannotMergeException("Blocking discussions are not resolved")
 
       checkForNoConflicts()
-
-      Napier.v("Check if bot is still assigned")
-      checkIfBotStillAssigned()
+      if (assignCheckIsNeeded) {
+        Napier.v("Check if bot is still assigned")
+        checkIfBotStillAssigned()
+      }
     }
   }
 

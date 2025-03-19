@@ -48,20 +48,27 @@ class Repository private constructor(
     scope = null,
   )
 
-  constructor(token: String) : this(createClient(token))
+  constructor() : this(
+    createClient(
+      token = System.getenv("MARGE_KOT_AUTH_TOKEN") ?: error("Please provide auth token for Gitlab")
+    )
+  )
 
-  suspend fun getAssignedOpenedMergeRequests(
-    targetBranch: String? = null,
+  suspend fun getOpenedMergeRequests(
+    targetBranch: String,
+    scope: Scope,
+    label: String? = null,
   ): List<MergeRequest> {
     try {
       val response = client.get(
         MergeRequests(
           parent = projectRequest,
-          scope = Scope.ASSIGNED_TO_ME,
+          scope = scope,
           state = State.OPENED,
           targetBranch = targetBranch,
           orderBy = OrderBy.UPDATED_AT,
           sort = Sort.ASCENDING,
+          label = label,
         )
       )
       return response.body()
@@ -138,11 +145,11 @@ class Repository private constructor(
     )
   }
 
-  suspend fun assignMergeRequestTo(mergeRequestId: Long, newAssignee: LongArray) {
+  suspend fun assignMergeRequestTo(mergeRequestId: Long, newAssignee: List<User>) {
     client.put(
       MergeRequestRequest(
         parent = simpleMergeRequestsRequest,
-        assigneeIds = newAssignee.joinToString(","),
+        assigneeIds = newAssignee.map(User::id).joinToString(","),
         id = mergeRequestId,
       )
     )
@@ -156,6 +163,16 @@ class Repository private constructor(
           id = mergeRequestId,
         ),
         body = message,
+      )
+    )
+  }
+
+  suspend fun setLabelsToMergeRequest(mergeRequestId: Long, newLabels: List<String>) {
+    client.put(
+      MergeRequestRequest(
+        parent = simpleMergeRequestsRequest,
+        id = mergeRequestId,
+        labels = newLabels.joinToString(","),
       )
     )
   }

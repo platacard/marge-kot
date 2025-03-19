@@ -21,7 +21,7 @@ class PipelineWaiter(
       while (true) {
         listOf(
           launch { delay(3000) },
-          launch { mergeableChecker.check() }
+          launch { mergeableChecker.check(assignCheckIsNeeded = true, mergeRequestId = mergeRequestId) }
         ).joinAll()
         Napier.v("Fetch merge request")
         val mergeRequest = repository.getMergeRequest(mergeRequestId)

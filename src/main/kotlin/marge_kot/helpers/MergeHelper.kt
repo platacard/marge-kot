@@ -9,20 +9,26 @@ import marge_kot.data.dto.NeedRebaseException
 import marge_kot.data.dto.merge_request.MergeRequest
 
 class MergeHelper(
-  val repository: Repository,
+  private val repository: Repository,
+  private val mergeableChecker: MergeRequestMergeableChecker
 ) {
 
   suspend fun merge(mergeRequest: MergeRequest) {
     val mergeRequestId = mergeRequest.id
-    val mergeableChecker = MergeRequestMergeableChecker(repository, mergeRequestId)
     val rebaseHelper = RebaseHelper(repository, mergeRequestId)
     val pipelineWaiter = PipelineWaiter(repository, mergeRequestId, mergeableChecker)
     while (true) {
       try {
-        mergeableChecker.check()
+        mergeableChecker.check(
+          assignCheckIsNeeded = true,
+          mergeRequestId = mergeRequestId
+        )
         rebaseHelper.rebaseIfNeeded()
         pipelineWaiter.waitForPipeline()
-        mergeableChecker.check()
+        mergeableChecker.check(
+          assignCheckIsNeeded = true,
+          mergeRequestId = mergeRequestId
+        )
         repository.merge(mergeRequestId)
         return
       } catch (ex: ServerResponseException) {

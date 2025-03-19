@@ -15,6 +15,7 @@ data class MergeRequestRequest(
   val id: Long,
   @SerialName("assignee_ids")
   val assigneeIds: String? = null,
+  val labels: String? = null,
 ) {
 
   @Resource("merge")
@@ -56,4 +57,5 @@ data class MergeRequest(
   val pipeline: Pipeline? = null,
   @SerialName("has_conflicts")
   val hasConflicts: Boolean? = null,
+  val labels: List<String>,
 )
