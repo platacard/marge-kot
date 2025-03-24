@@ -194,7 +194,8 @@ private fun createClient(token: String): HttpClient {
       install(plugin = Logging, configure = LoggingConfig::configureLogger)
     }
     install(HttpRequestRetry) {
-      retryOnException(maxRetries = 5)
+      retryOnServerErrors(maxRetries = 5)
+      retryOnException(maxRetries = 5, retryOnTimeout = true)
       exponentialDelay()
     }
 
