@@ -79,7 +79,7 @@ class Repository private constructor(
   }
 
   suspend fun checkIfMergeRequestApproved(mergeRequestId: Long): Boolean {
-    return client.get(
+    val result = client.get(
       MergeRequestApprovalsRequest(
         parent = MergeRequestRequest(
           parent = simpleMergeRequestsRequest,
@@ -88,7 +88,9 @@ class Repository private constructor(
       )
     )
       .body<MergeRequestApprovals>()
-      .approved
+
+    // Sometimes gitlab returns `approved = false` while `approvalsLeft == 0`
+    return result.approved || result.approvalsLeft == 0
   }
 
   suspend fun getMergeRequest(id: Long): MergeRequest {
