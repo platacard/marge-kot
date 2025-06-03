@@ -9,6 +9,7 @@ import marge_kot.data.dto.merge_request.MergeStatus
 class MergeRequestMergeableChecker(
   private val repository: Repository,
 ) {
+
   suspend fun check(assignCheckIsNeeded: Boolean, mergeRequestId: Long) {
     val mergeRequest = repository.getMergeRequest(mergeRequestId)
     with(mergeRequest) {
@@ -19,7 +20,7 @@ class MergeRequestMergeableChecker(
       if (draft) throw CannotMergeException("I can't merge drafts")
 
       Napier.v("Check if approve count is enough")
-      if (!repository.checkIfMergeRequestApproved(id)) throw CannotMergeException("Insufficient approvers")
+      if (!repository.checkIfMergeRequestApproved(id)) throw CannotMergeException("Insufficient approves")
 
       Napier.v("Check if there any blocking discussions")
       if (!blockingDiscussionsResolved) throw CannotMergeException("Blocking discussions are not resolved")

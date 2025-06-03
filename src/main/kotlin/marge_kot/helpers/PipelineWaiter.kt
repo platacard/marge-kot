@@ -12,11 +12,10 @@ import marge_kot.data.dto.pipeline.Pipeline
 
 class PipelineWaiter(
   private val repository: Repository,
-  private val mergeRequestId: Long,
   private val mergeableChecker: MergeRequestMergeableChecker,
 ) {
 
-  suspend fun waitForPipeline() {
+  suspend fun waitForPipeline(mergeRequestId: Long) {
     coroutineScope {
       while (true) {
         listOf(

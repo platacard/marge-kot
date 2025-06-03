@@ -36,9 +36,9 @@ import marge_kot.data.dto.user.User
 import marge_kot.data.dto.user.UserRequest
 import marge_kot.utils.log.configureLogger
 
-class Repository private constructor(
-  private val client: HttpClient
-) {
+class Repository {
+
+  private val client: HttpClient = createClient()
 
   private val projectId: String = System.getenv("MARGE_KOT_PROJECT_ID") ?: error("Please provide project id")
   private val projectRequest: ProjectRequest = ProjectRequest(projectId)
@@ -46,12 +46,6 @@ class Repository private constructor(
     parent = projectRequest,
     state = null,
     scope = null,
-  )
-
-  constructor() : this(
-    createClient(
-      token = System.getenv("MARGE_KOT_AUTH_TOKEN") ?: error("Please provide auth token for Gitlab")
-    )
   )
 
   suspend fun getOpenedMergeRequests(
@@ -180,7 +174,7 @@ class Repository private constructor(
   }
 }
 
-private fun createClient(token: String): HttpClient {
+private fun createClient(): HttpClient {
   return HttpClient(CIO) {
     install(Resources)
     install(ContentNegotiation) {
@@ -204,7 +198,7 @@ private fun createClient(token: String): HttpClient {
     defaultRequest {
       val url = System.getenv("MARGE_KOT_BASE_API") ?: error("Please provide gitlab api base url")
       url(url)
-      bearerAuth(token)
+      bearerAuth(System.getenv("MARGE_KOT_AUTH_TOKEN") ?: error("Please provide auth token for Gitlab"))
     }
 
     expectSuccess = true

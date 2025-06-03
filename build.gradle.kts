@@ -2,6 +2,7 @@ import org.gradle.api.JavaVersion.VERSION_17
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 
 val ktorVersion = "3.0.0"
+val koin = "4.0.4"
 
 repositories {
   mavenCentral()
@@ -22,6 +23,11 @@ dependencies {
   implementation("ch.qos.logback:logback-classic:1.4.5")
   implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.9.0")
   implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core-jvm:1.9.0")
+
+  // Koin
+  implementation("io.insert-koin:koin-core:$koin")
+  implementation("io.insert-koin:koin-ktor:$koin")
+
   testImplementation("org.junit.jupiter:junit-jupiter:5.11.3")
   testImplementation("com.google.truth:truth:1.1.3")
   testImplementation("io.mockk:mockk:1.13.2")

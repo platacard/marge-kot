@@ -7,10 +7,9 @@ import marge_kot.data.dto.CannotMergeException
 
 class RebaseHelper(
   private val repository: Repository,
-  private val mergeRequestId: Long,
 ) {
 
-  suspend fun rebaseIfNeeded() {
+  suspend fun rebaseIfNeeded(mergeRequestId: Long) {
     var attemptNumber = 0
     while (true) {
       delay(1500)

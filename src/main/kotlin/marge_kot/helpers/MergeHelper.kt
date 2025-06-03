@@ -10,21 +10,21 @@ import marge_kot.data.dto.merge_request.MergeRequest
 
 class MergeHelper(
   private val repository: Repository,
-  private val mergeableChecker: MergeRequestMergeableChecker
+  private val mergeableChecker: MergeRequestMergeableChecker,
+  private val rebaseHelper: RebaseHelper,
+  private val pipelineWaiter: PipelineWaiter,
 ) {
 
   suspend fun merge(mergeRequest: MergeRequest) {
     val mergeRequestId = mergeRequest.id
-    val rebaseHelper = RebaseHelper(repository, mergeRequestId)
-    val pipelineWaiter = PipelineWaiter(repository, mergeRequestId, mergeableChecker)
     while (true) {
       try {
         mergeableChecker.check(
           assignCheckIsNeeded = true,
           mergeRequestId = mergeRequestId
         )
-        rebaseHelper.rebaseIfNeeded()
-        pipelineWaiter.waitForPipeline()
+        rebaseHelper.rebaseIfNeeded(mergeRequestId)
+        pipelineWaiter.waitForPipeline(mergeRequestId)
         mergeableChecker.check(
           assignCheckIsNeeded = true,
           mergeRequestId = mergeRequestId
@@ -47,7 +47,7 @@ class MergeHelper(
         )
         unassignBot(repository, mergeRequestId)
         return
-      } catch (ex: NeedRebaseException) {
+      } catch (_: NeedRebaseException) {
         Napier.e("Need rebase again")
         repository.addCommentToMergeRequest(
           mergeRequestId = mergeRequestId,
