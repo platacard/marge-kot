@@ -16,6 +16,8 @@ class LabelHandler(
     if (label == null) return
 
     val mergeRequestsAvailableToAssign = getMergeRequestsToAssign(targetBranch)
+    if (mergeRequestsAvailableToAssign.isEmpty()) return
+
     mergeRequestsAvailableToAssign.assignAllToKotAndRemoveLabel()
   }
 

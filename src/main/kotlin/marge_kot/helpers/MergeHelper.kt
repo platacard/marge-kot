@@ -6,7 +6,6 @@ import io.ktor.client.plugins.ServerResponseException
 import marge_kot.data.Repository
 import marge_kot.data.dto.CannotMergeException
 import marge_kot.data.dto.NeedRebaseException
-import marge_kot.data.dto.merge_request.MergeRequest
 
 class MergeHelper(
   private val repository: Repository,
@@ -15,8 +14,7 @@ class MergeHelper(
   private val pipelineWaiter: PipelineWaiter,
 ) {
 
-  suspend fun merge(mergeRequest: MergeRequest) {
-    val mergeRequestId = mergeRequest.id
+  suspend fun merge(mergeRequestId: Long) {
     while (true) {
       try {
         mergeableChecker.check(

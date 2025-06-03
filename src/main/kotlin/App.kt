@@ -45,7 +45,7 @@ class App : KoinComponent {
       if (assignedOpenedMergeRequests.isNotEmpty()) {
         val mergeRequest = assignedOpenedMergeRequests.first()
         Napier.v("Merge request with id ${mergeRequest.id} found")
-        mergeHelper.merge(mergeRequest)
+        mergeHelper.merge(mergeRequest.id)
       } else {
         Napier.v("sleep for ${sleepTimeMs.milliseconds}")
         delay(sleepTimeMs)
