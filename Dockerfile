@@ -1,10 +1,15 @@
-FROM gradle as builder
+FROM gradle:8.5-jdk17 AS builder
 WORKDIR /project
-COPY src ./src
-COPY build.gradle.kts ./build.gradle.kts
-RUN gradle clean build
 
-FROM openjdk as backend
+COPY build.gradle.kts ./
+COPY src ./src
+
+RUN gradle clean build -x test --no-daemon
+
+FROM eclipse-temurin:17-jre-alpine AS backend
 WORKDIR /root
+
 COPY --from=builder /project/build/libs/*.jar ./app.jar
+
+EXPOSE 8080
 ENTRYPOINT ["java", "-jar", "/root/app.jar"]
