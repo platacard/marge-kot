@@ -18,7 +18,7 @@ class LabelHandler(
     val mergeRequestsAvailableToAssign = getMergeRequestsToAssign(targetBranch)
     if (mergeRequestsAvailableToAssign.isEmpty()) return
 
-    mergeRequestsAvailableToAssign.assignAllToKotAndRemoveLabel()
+    mergeRequestsAvailableToAssign.assignAllToKot()
   }
 
   private suspend fun getMergeRequestsToAssign(targetBranch: String): List<MergeRequest> {
@@ -41,16 +41,12 @@ class LabelHandler(
     }
   }
 
-  private suspend fun List<MergeRequest>.assignAllToKotAndRemoveLabel() {
+  private suspend fun List<MergeRequest>.assignAllToKot() {
     val user = repository.getUserInfo()
     forEach { mergeRequest ->
       repository.assignMergeRequestTo(
         mergeRequestId = mergeRequest.id,
         newAssignee = mergeRequest.assignees.plus(user),
-      )
-      repository.setLabelsToMergeRequest(
-        mergeRequestId = mergeRequest.id,
-        newLabels = mergeRequest.labels.filterNot { it == label },
       )
     }
   }

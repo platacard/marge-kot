@@ -162,16 +162,6 @@ class Repository {
       )
     )
   }
-
-  suspend fun setLabelsToMergeRequest(mergeRequestId: Long, newLabels: List<String>) {
-    client.put(
-      MergeRequestRequest(
-        parent = simpleMergeRequestsRequest,
-        id = mergeRequestId,
-        labels = newLabels.joinToString(","),
-      )
-    )
-  }
 }
 
 private fun createClient(): HttpClient {
