@@ -4,7 +4,7 @@ import marge_kot.data.Repository
 import marge_kot.helpers.LabelHandler
 import marge_kot.helpers.MergeHelper
 import marge_kot.helpers.MergeRequestMergeableChecker
-import marge_kot.helpers.PipelineWaiter
+import marge_kot.helpers.PipelineChecker
 import marge_kot.helpers.RebaseHelper
 import org.koin.core.module.dsl.singleOf
 import org.koin.dsl.module
@@ -14,6 +14,6 @@ val appModule = module {
   singleOf(::MergeRequestMergeableChecker)
   singleOf(::MergeHelper)
   singleOf(::LabelHandler)
-  singleOf(::PipelineWaiter)
+  singleOf(::PipelineChecker)
   singleOf(::RebaseHelper)
 }

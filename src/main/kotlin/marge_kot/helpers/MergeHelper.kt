@@ -11,7 +11,7 @@ class MergeHelper(
   private val repository: Repository,
   private val mergeableChecker: MergeRequestMergeableChecker,
   private val rebaseHelper: RebaseHelper,
-  private val pipelineWaiter: PipelineWaiter,
+  private val pipelineChecker: PipelineChecker,
 ) {
 
   suspend fun merge(mergeRequestId: Long) {
@@ -22,7 +22,7 @@ class MergeHelper(
           mergeRequestId = mergeRequestId
         )
         rebaseHelper.rebaseIfNeeded(mergeRequestId)
-        pipelineWaiter.waitForPipeline(mergeRequestId)
+        pipelineChecker.waitForPipeline(mergeRequestId)
         mergeableChecker.check(
           assignCheckIsNeeded = true,
           mergeRequestId = mergeRequestId
