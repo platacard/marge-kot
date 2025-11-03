@@ -9,9 +9,8 @@ class LabelHandler(
   private val repository: Repository,
   private val mergeableChecker: MergeRequestMergeableChecker,
   private val pipelineChecker: PipelineChecker,
+  private val label: String? = System.getenv("MARGE_KOT_AUTO_MERGE_LABEL"),
 ) {
-
-  private val label: String? = System.getenv("MARGE_KOT_AUTO_MERGE_LABEL")
 
   suspend fun processLabeledMergeRequests(targetBranch: String) {
     if (label == null) return
@@ -39,7 +38,7 @@ class LabelHandler(
         pipelineChecker.checkIfPipelineFinished(mergeRequest)
         mergeRequest
       }.getOrElse { throwable ->
-        Napier.v("Merge request with id ${mergeRequest.id} can't be merged: ${throwable.message}")
+        Napier.v("Merge request with id ${mergeRequest.id} can't be merged: ${throwable.message ?: throwable.javaClass.simpleName}")
         null
       }
     }

@@ -13,7 +13,14 @@ val appModule = module {
   singleOf(::Repository)
   singleOf(::MergeRequestMergeableChecker)
   singleOf(::MergeHelper)
-  singleOf(::LabelHandler)
+  single {
+    LabelHandler(
+      repository = get(),
+      mergeableChecker = get(),
+      pipelineChecker = get(),
+      label = System.getenv("MARGE_KOT_AUTO_MERGE_LABEL"),
+    )
+  }
   singleOf(::PipelineChecker)
   singleOf(::RebaseHelper)
 }

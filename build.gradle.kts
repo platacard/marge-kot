@@ -30,7 +30,8 @@ dependencies {
 
   testImplementation("org.junit.jupiter:junit-jupiter:5.11.3")
   testImplementation("com.google.truth:truth:1.1.3")
-  testImplementation("io.mockk:mockk:1.13.2")
+  testImplementation("io.mockk:mockk:1.13.13")
+  testImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-test:1.9.0")
 }
 
 java {
@@ -43,6 +44,12 @@ kotlin {
     freeCompilerArgs.add("-opt-in=kotlin.time.ExperimentalTime")
   }
 }
+tasks.test {
+  useJUnitPlatform()
+  // Workaround for Byte Buddy on newer JDKs; safe to keep even after upgrading MockK
+  jvmArgs("-Dnet.bytebuddy.experimental=true")
+}
+
 tasks.jar {
   isZip64 = true
   manifest.attributes("Main-Class" to "AppKt")
