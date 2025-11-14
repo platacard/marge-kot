@@ -312,7 +312,7 @@ class LabelHandlerTest : BaseTest(), KoinComponent {
     val targetBranch = "main"
     val targetSha = "base123"
     val headSha = "head456"
-    
+
     val mergeRequestNoPipeline = createTestMergeRequest(
       id = 1L,
       targetBranch = targetBranch,
@@ -321,15 +321,135 @@ class LabelHandlerTest : BaseTest(), KoinComponent {
       labels = listOf(testLabel),
       assignees = emptyList(),
     )
-    
+
     coEvery { mockRepository.getOpenedMergeRequests(targetBranch, Scope.ALL, testLabel) } returns listOf(mergeRequestNoPipeline)
     coEvery { mockRepository.checkIfMergeRequestApproved(1L) } returns true
     coEvery { mockRepository.getMergeRequest(1L) } returns mergeRequestNoPipeline
 
     labelHandler.processLabeledMergeRequests(targetBranch)
 
-    // Should not assign merge requests without pipelines
+    // Should assign merge requests without pipelines
+    coVerify(exactly = 1) { mockRepository.assignMergeRequestTo(any(), any()) }
+    coVerify(exactly = 1) { mockRepository.getUserInfo() }
+  }
+
+  @Test
+  fun `processLabeledMergeRequests should assign merge requests with running pipeline`() = runTest {
+    val targetBranch = "main"
+    val targetSha = "base123"
+    val headSha = "head456"
+    val user = createTestUser(id = 100L, username = "test-bot")
+
+    val mergeRequestWithRunningPipeline = createTestMergeRequest(
+      id = 1L,
+      targetBranch = targetBranch,
+      diffRefs = DiffRefs(baseSha = targetSha, headSha = headSha),
+      pipeline = createTestPipeline(id = 1L, sha = headSha, status = Pipeline.Status.RUNNING),
+      labels = listOf(testLabel),
+      assignees = emptyList(),
+    )
+
+    coEvery { mockRepository.getOpenedMergeRequests(targetBranch, Scope.ALL, testLabel) } returns listOf(mergeRequestWithRunningPipeline)
+    coEvery { mockRepository.checkIfMergeRequestApproved(1L) } returns true
+    coEvery { mockRepository.getUserInfo() } returns user
+    coEvery { mockRepository.getMergeRequest(1L) } returns mergeRequestWithRunningPipeline
+    coEvery { mockRepository.getPipeline(1L) } returns createTestPipeline(
+      id = 1L,
+      sha = headSha,
+      status = Pipeline.Status.RUNNING
+    )
+
+    labelHandler.processLabeledMergeRequests(targetBranch)
+
+    // Should assign merge requests with running pipelines
+    coVerify(exactly = 1) {
+      mockRepository.assignMergeRequestTo(1L, listOf(user))
+    }
+  }
+
+  @Test
+  fun `processLabeledMergeRequests should assign merge requests with pending pipeline`() = runTest {
+    val targetBranch = "main"
+    val targetSha = "base123"
+    val headSha = "head456"
+    val user = createTestUser(id = 100L, username = "test-bot")
+
+    val mergeRequestWithPendingPipeline = createTestMergeRequest(
+      id = 1L,
+      targetBranch = targetBranch,
+      diffRefs = DiffRefs(baseSha = targetSha, headSha = headSha),
+      pipeline = createTestPipeline(id = 1L, sha = headSha, status = Pipeline.Status.PENDING),
+      labels = listOf(testLabel),
+      assignees = emptyList(),
+    )
+
+    coEvery { mockRepository.getOpenedMergeRequests(targetBranch, Scope.ALL, testLabel) } returns listOf(mergeRequestWithPendingPipeline)
+    coEvery { mockRepository.checkIfMergeRequestApproved(1L) } returns true
+    coEvery { mockRepository.getUserInfo() } returns user
+    coEvery { mockRepository.getMergeRequest(1L) } returns mergeRequestWithPendingPipeline
+    coEvery { mockRepository.getPipeline(1L) } returns createTestPipeline(
+      id = 1L,
+      sha = headSha,
+      status = Pipeline.Status.PENDING
+    )
+
+    labelHandler.processLabeledMergeRequests(targetBranch)
+
+    // Should assign merge requests with pending pipelines
+    coVerify(exactly = 1) {
+      mockRepository.assignMergeRequestTo(1L, listOf(user))
+    }
+  }
+
+  @Test
+  fun `processLabeledMergeRequests should skip draft merge requests`() = runTest {
+    val targetBranch = "main"
+    val targetSha = "base123"
+    val headSha = "head456"
+
+    val draftMergeRequest = createTestMergeRequest(
+      id = 1L,
+      targetBranch = targetBranch,
+      draft = true,
+      diffRefs = DiffRefs(baseSha = targetSha, headSha = headSha),
+      pipeline = createTestPipeline(id = 1L, sha = headSha, status = Pipeline.Status.SUCCESS),
+      labels = listOf(testLabel),
+      assignees = emptyList(),
+    )
+
+    coEvery { mockRepository.getOpenedMergeRequests(targetBranch, Scope.ALL, testLabel) } returns listOf(draftMergeRequest)
+    coEvery { mockRepository.checkIfMergeRequestApproved(1L) } returns true
+    coEvery { mockRepository.getMergeRequest(1L) } returns draftMergeRequest
+
+    labelHandler.processLabeledMergeRequests(targetBranch)
+
+    // Should not assign draft merge requests
     coVerify(exactly = 0) { mockRepository.assignMergeRequestTo(any(), any()) }
-    coVerify(exactly = 0) { mockRepository.getUserInfo() }
+  }
+
+  @Test
+  fun `processLabeledMergeRequests should skip merge requests with unresolved blocking discussions`() = runTest {
+    val targetBranch = "main"
+    val targetSha = "base123"
+    val headSha = "head456"
+
+    val mergeRequestWithBlockingDiscussions = createTestMergeRequest(
+      id = 1L,
+      targetBranch = targetBranch,
+      blockingDiscussionsResolved = false,
+      diffRefs = DiffRefs(baseSha = targetSha, headSha = headSha),
+      pipeline = createTestPipeline(id = 1L, sha = headSha, status = Pipeline.Status.SUCCESS),
+      labels = listOf(testLabel),
+      assignees = emptyList(),
+    )
+
+    coEvery { mockRepository.getOpenedMergeRequests(targetBranch, Scope.ALL, testLabel) } returns listOf(mergeRequestWithBlockingDiscussions)
+    coEvery { mockRepository.checkIfMergeRequestApproved(1L) } returns true
+    coEvery { mockRepository.getMergeRequest(1L) } returns mergeRequestWithBlockingDiscussions
+
+    labelHandler.processLabeledMergeRequests(targetBranch)
+
+    // Should not assign merge requests with blocking discussions
+    coVerify(exactly = 0) { mockRepository.assignMergeRequestTo(any(), any()) }
   }
 }
