@@ -24,19 +24,20 @@ class RebaseHelper(
       mergeRequest.checkIfUpdated(
         repository = repository,
         onUpdated = {
-          Napier.v("Rebase done")
+          Napier.i("MR $mergeRequestId is already up to date, no rebase needed")
           return
         }
       )
       val targetSha = repository.getBranchInfo(mergeRequest.targetBranch).commit.id
       if (mergeRequest.diffRefs?.baseSha == targetSha) {
-        Napier.v("Rebase done")
+        Napier.i("MR $mergeRequestId is already up to date, no rebase needed")
         return
       }
-      Napier.v("Rebase against target")
+      Napier.i("Starting rebase for MR $mergeRequestId against target branch")
       val rebaseResult = repository.rebaseMergeRequest(mergeRequestId)
       if (rebaseResult.mergeError != null) {
         attemptNumber++
+        Napier.w("Rebase attempt $attemptNumber failed for MR $mergeRequestId: ${rebaseResult.mergeError}")
         if (attemptNumber > 3) throw CannotMergeException("Failed to rebase after $attemptNumber attempts")
         continue
       }

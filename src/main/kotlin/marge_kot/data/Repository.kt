@@ -67,7 +67,7 @@ class Repository {
       )
       return response.body()
     } catch (e: Throwable) {
-      Napier.e(e.message ?: "Empty message on call merge requests")
+      Napier.e("Failed to fetch merge requests for branch $targetBranch, scope $scope, label $label", e)
       return emptyList()
     }
   }

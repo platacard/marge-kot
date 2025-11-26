@@ -15,6 +15,7 @@ class MergeHelper(
 ) {
 
   suspend fun merge(mergeRequestId: Long) {
+    Napier.i("Starting merge process for MR $mergeRequestId")
     while (true) {
       try {
         mergeableChecker.check(
@@ -28,9 +29,10 @@ class MergeHelper(
           mergeRequestId = mergeRequestId
         )
         repository.merge(mergeRequestId)
+        Napier.i("Successfully merged MR $mergeRequestId")
         return
       } catch (ex: ServerResponseException) {
-        Napier.e("Something happened with Gitlab: $ex")
+        Napier.e("Something happened with Gitlab", ex)
         repository.addCommentToMergeRequest(
           mergeRequestId = mergeRequestId,
           message = "Something happened with Gitlab: ${ex.message}"
@@ -38,7 +40,7 @@ class MergeHelper(
         unassignBot(repository, mergeRequestId)
         return
       } catch (ex: HttpRequestTimeoutException) {
-        Napier.e("Request timeout: $ex")
+        Napier.e("Request timeout", ex)
         repository.addCommentToMergeRequest(
           mergeRequestId = mergeRequestId,
           message = "Gitlab is not responding: ${ex.message}"
@@ -46,14 +48,14 @@ class MergeHelper(
         unassignBot(repository, mergeRequestId)
         return
       } catch (_: NeedRebaseException) {
-        Napier.e("Need rebase again")
+        Napier.i("Need rebase again for MR $mergeRequestId")
         repository.addCommentToMergeRequest(
           mergeRequestId = mergeRequestId,
           message = "Hmm, I guess I should try again"
         )
         continue
       } catch (ex: CannotMergeException) {
-        Napier.e("Can't merge: $ex")
+        Napier.e("Can't merge MR $mergeRequestId: ${ex.message}", ex)
         repository.addCommentToMergeRequest(
           mergeRequestId = mergeRequestId,
           message = "I can't merge this merge request: ${ex.message}"
@@ -61,7 +63,7 @@ class MergeHelper(
         unassignBot(repository, mergeRequestId)
         return
       } catch (ex: Throwable) {
-        Napier.e("Unhandled exception: $ex")
+        Napier.e("Unhandled exception for MR $mergeRequestId", ex)
         repository.addCommentToMergeRequest(
           mergeRequestId = mergeRequestId,
           message = "Something bad happened. Please check my logs"

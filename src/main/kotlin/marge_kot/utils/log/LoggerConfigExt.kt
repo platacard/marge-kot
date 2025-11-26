@@ -9,6 +9,8 @@ import io.ktor.http.HttpHeaders
 fun LoggingConfig.configureLogger() {
   level = LogLevel.BODY
   logger = object : Logger {
+    private var lastRequestUrl: String? = null
+
     override fun log(message: String) {
       val compactMessage = message
         .replace("\n", " ")
@@ -25,9 +27,14 @@ fun LoggingConfig.configureLogger() {
     }
 
     private fun processRequest(message: String): String {
-      return message
-        .substringBefore(" METHOD:")
+      val url = message
+        .substringAfter("REQUEST:", "")
+        .substringBefore(" METHOD:", "")
         .trim()
+
+      lastRequestUrl = url
+
+      return "REQUEST: $url"
     }
 
     private fun processResponse(message: String): String {
@@ -44,7 +51,8 @@ fun LoggingConfig.configureLogger() {
         ?.let { "BODY: $it" }
         ?: "BODY: {}"
 
-      return "RESPONSE: $statusCode, $body"
+      val urlPart = lastRequestUrl?.let { "FROM: $it" } ?: ""
+      return "RESPONSE: $statusCode\n$urlPart,\n$body"
     }
   }
   sanitizeHeader { header -> header == HttpHeaders.Authorization }

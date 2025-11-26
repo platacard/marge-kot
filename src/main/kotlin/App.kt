@@ -1,5 +1,6 @@
 import io.github.aakira.napier.Napier
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.runBlocking
 import marge_kot.data.Repository
 import marge_kot.data.dto.common.Scope
 import marge_kot.di.appModule
@@ -14,7 +15,7 @@ import kotlin.time.Duration.Companion.milliseconds
 
 private const val sleepTimeMs = 30_000L
 
-suspend fun main() {
+fun main() = runBlocking {
   initLogger()
   startKoin {
     modules(appModule)
@@ -36,8 +37,9 @@ class App : KoinComponent {
   suspend fun main() {
     while (true) {
       val targetBranch = System.getenv("MARGE_KOT_TARGET_BRANCH") ?: error("Please provide target branch")
-      Napier.v("check if any open merge requests assigned to me for target branch $targetBranch")
+      Napier.v("Check if any open merge requests assigned to me for target branch $targetBranch")
       labelHandler.processLabeledMergeRequests(targetBranch)
+      Napier.v("Fetch opened merge requests assigned to me for target branch $targetBranch")
       val assignedOpenedMergeRequests = repository.getOpenedMergeRequests(
         scope = Scope.ASSIGNED_TO_ME,
         targetBranch = targetBranch
@@ -47,7 +49,7 @@ class App : KoinComponent {
         Napier.v("Merge request with id ${mergeRequest.id} found")
         mergeHelper.merge(mergeRequest.id)
       } else {
-        Napier.v("sleep for ${sleepTimeMs.milliseconds}")
+        Napier.v("Sleep for ${sleepTimeMs.milliseconds}")
         delay(sleepTimeMs)
       }
     }

@@ -31,15 +31,19 @@ class LabelHandler(
     )
     return mergeRequests.mapNotNull { mergeRequest ->
       runCatching {
+        Napier.v("Found merge request with id ${mergeRequest.id} labeled with $label")
+        Napier.v("Check if merge request with id ${mergeRequest.id} is mergeable")
         mergeableChecker.check(
           assignCheckIsNeeded = false,
           mergeRequestId = mergeRequest.id
         )
+        Napier.v("Check if pipeline in merge request with id ${mergeRequest.id} is not failed")
         checkIfPipelineNotFailed(mergeRequest)
 
+        Napier.v("Merge request with id ${mergeRequest.id} is available to assign to bot")
         mergeRequest
       }.getOrElse { throwable ->
-        Napier.v("Merge request with id ${mergeRequest.id} can't be merged: ${throwable.message ?: throwable.javaClass.simpleName}")
+        Napier.d("Merge request with id ${mergeRequest.id} can't be auto-assigned: ${throwable.message ?: throwable.javaClass.simpleName}", throwable)
         null
       }
     }
@@ -51,12 +55,15 @@ class LabelHandler(
   }
 
   private suspend fun List<MergeRequest>.assignAllToKot() {
+    if (isEmpty()) return
     val user = repository.getUserInfo()
+    Napier.i("Auto-assigning ${size} merge request(s) to bot: ${joinToString { it.id.toString() }}")
     forEach { mergeRequest ->
       repository.assignMergeRequestTo(
         mergeRequestId = mergeRequest.id,
         newAssignee = mergeRequest.assignees.plus(user),
       )
+      Napier.i("Assigned MR ${mergeRequest.id} to bot")
     }
   }
 }

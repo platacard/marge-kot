@@ -13,21 +13,21 @@ class MergeRequestMergeableChecker(
   suspend fun check(assignCheckIsNeeded: Boolean, mergeRequestId: Long) {
     val mergeRequest = repository.getMergeRequest(mergeRequestId)
     with(mergeRequest) {
-      Napier.v("Check if merge request already merged")
+      Napier.v("Check if merge request $id already merged")
       if (mergeStatus == MergeStatus.MERGED) throw CannotMergeException("Merge request was merged already")
 
-      Napier.v("Check if merge request is draft")
+      Napier.v("Check if merge request $id is draft")
       if (draft) throw CannotMergeException("I can't merge drafts")
 
-      Napier.v("Check if approve count is enough")
+      Napier.v("Check if approve count in merge request $id is enough")
       if (!repository.checkIfMergeRequestApproved(id)) throw CannotMergeException("Insufficient approves")
 
-      Napier.v("Check if there any blocking discussions")
+      Napier.v("Check if there any blocking discussions in $id")
       if (!blockingDiscussionsResolved) throw CannotMergeException("Blocking discussions are not resolved")
 
       checkForNoConflicts()
       if (assignCheckIsNeeded) {
-        Napier.v("Check if bot is still assigned")
+        Napier.v("Check if bot is still assigned to merge request $id")
         checkIfBotStillAssigned()
       }
     }
@@ -40,6 +40,6 @@ class MergeRequestMergeableChecker(
 }
 
 fun MergeRequest.checkForNoConflicts() {
-  Napier.v("Check if has any conflicts")
+  Napier.v("Check if has any conflicts in $id")
   if (hasConflicts == true) throw CannotMergeException("You have conflicts with target branch")
 }

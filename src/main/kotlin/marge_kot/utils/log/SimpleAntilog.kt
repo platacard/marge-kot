@@ -14,6 +14,10 @@ class SimpleAntilog : Antilog() {
       append(priority.name)
       tag?.let { append(" [$it]") }
       message?.let { append(": $it") }
+      throwable?.let {
+        append("\n")
+        append(it.stackTraceToString())
+      }
     }
     println(logMessage)
   }

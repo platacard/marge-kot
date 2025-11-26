@@ -17,6 +17,7 @@ class PipelineChecker(
 ) {
 
   suspend fun waitForPipeline(mergeRequestId: Long) {
+    Napier.i("Waiting for pipeline to complete for MR $mergeRequestId")
     coroutineScope {
       while (true) {
         listOf(
@@ -31,7 +32,7 @@ class PipelineChecker(
         )
         val pipelineFinished = checkIfPipelineFinished(mergeRequest)
         if (pipelineFinished) {
-          Napier.v("Pipeline finished successfully")
+          Napier.i("Pipeline finished successfully for MR $mergeRequestId")
           return@coroutineScope
         }
       }

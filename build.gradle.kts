@@ -53,7 +53,8 @@ tasks.test {
 tasks.jar {
   isZip64 = true
   manifest.attributes("Main-Class" to "AppKt")
-  configurations["compileClasspath"].forEach { file: File ->
+  val runtimeClasspath = configurations["runtimeClasspath"]
+  runtimeClasspath.forEach { file: File ->
     from(zipTree(file.absoluteFile))
   }
   duplicatesStrategy = DuplicatesStrategy.INCLUDE
