@@ -58,4 +58,6 @@ data class MergeRequest(
   @SerialName("has_conflicts")
   val hasConflicts: Boolean? = null,
   val labels: List<String>,
+  @SerialName("merge_error")
+  val mergeError: String? = null,
 )

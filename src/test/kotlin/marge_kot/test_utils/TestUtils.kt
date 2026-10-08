@@ -33,6 +33,7 @@ object TestUtils {
     pipeline: Pipeline? = null,
     hasConflicts: Boolean? = false,
     labels: List<String> = emptyList(),
+    mergeError: String? = null,
   ): MergeRequest {
     return MergeRequest(
       id = id,
@@ -51,6 +52,7 @@ object TestUtils {
       pipeline = pipeline,
       hasConflicts = hasConflicts,
       labels = labels,
+      mergeError = mergeError,
     )
   }
 

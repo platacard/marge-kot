@@ -11,6 +11,7 @@ class RebaseHelper(
 
   suspend fun rebaseIfNeeded(mergeRequestId: Long) {
     var attemptNumber = 0
+    var rebaseRequested = false
     while (true) {
       delay(1500)
       Napier.v("Update merge request")
@@ -33,8 +34,14 @@ class RebaseHelper(
         Napier.i("MR $mergeRequestId is already up to date, no rebase needed")
         return
       }
+      if (rebaseRequested && mergeRequest.mergeError != null) {
+        attemptNumber++
+        Napier.w("Rebase attempt $attemptNumber failed for MR $mergeRequestId: ${mergeRequest.mergeError}")
+        if (attemptNumber > 3) throw CannotMergeException("Failed to rebase after $attemptNumber attempts")
+      }
       Napier.i("Starting rebase for MR $mergeRequestId against target branch")
       val rebaseResult = repository.rebaseMergeRequest(mergeRequestId)
+      rebaseRequested = rebaseResult.mergeError == null
       if (rebaseResult.mergeError != null) {
         attemptNumber++
         Napier.w("Rebase attempt $attemptNumber failed for MR $mergeRequestId: ${rebaseResult.mergeError}")
