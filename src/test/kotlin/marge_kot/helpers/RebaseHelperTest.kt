@@ -11,6 +11,7 @@ import marge_kot.data.dto.merge_request.RebaseResult
 import marge_kot.test_utils.BaseTest
 import marge_kot.test_utils.TestUtils.createTestBranch
 import marge_kot.test_utils.TestUtils.createTestMergeRequest
+import marge_kot.test_utils.TestUtils.createTestUser
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertThrows
@@ -24,6 +25,69 @@ class RebaseHelperTest : BaseTest(), KoinComponent {
   @BeforeEach
   override fun setUp() {
     super.setUp()
+    coEvery { mockRepository.getUserInfo() } returns createTestUser()
+  }
+
+  @Test
+  fun `rebaseIfNeeded should stop when bot is unassigned during rebase loop`() = runTest {
+    val oldBaseSha = "oldBase123"
+    val assignedMergeRequest = createTestMergeRequest(
+      id = 1L,
+      targetBranch = "main",
+      diffRefs = DiffRefs(baseSha = oldBaseSha, headSha = "head456"),
+      rebaseInProgress = false,
+    )
+    val unassignedMergeRequest = createTestMergeRequest(
+      id = 1L,
+      targetBranch = "main",
+      assignees = emptyList(),
+      diffRefs = DiffRefs(baseSha = oldBaseSha, headSha = "head456"),
+      rebaseInProgress = false,
+    )
+    val branch = createTestBranch(name = "main", commitSha = "target123")
+    var rebaseCalls = 0
+
+    coEvery { mockRepository.getMergeRequest(1L) } returns assignedMergeRequest andThen unassignedMergeRequest
+    coEvery { mockRepository.getBranchInfo("main") } returns branch
+    coEvery { mockRepository.rebaseMergeRequest(1L) } coAnswers {
+      rebaseCalls++
+      check(rebaseCalls <= 20) { "Rebase requested $rebaseCalls times without giving up" }
+      RebaseResult(rebaseInProgress = true, mergeError = null)
+    }
+
+    val exception = assertThrows<CannotMergeException> {
+      rebaseHelper.rebaseIfNeeded(1L)
+    }
+
+    assertThat(exception.message).contains("unassigned")
+    assertThat(rebaseCalls).isEqualTo(1)
+  }
+
+  @Test
+  fun `rebaseIfNeeded should give up when rebase never brings merge request up to date`() = runTest {
+    val staleMergeRequest = createTestMergeRequest(
+      id = 1L,
+      targetBranch = "main",
+      diffRefs = DiffRefs(baseSha = "oldBase123", headSha = "head456"),
+      rebaseInProgress = false,
+    )
+    val branch = createTestBranch(name = "main", commitSha = "target123")
+    var rebaseCalls = 0
+
+    coEvery { mockRepository.getMergeRequest(1L) } returns staleMergeRequest
+    coEvery { mockRepository.getBranchInfo("main") } returns branch
+    coEvery { mockRepository.rebaseMergeRequest(1L) } coAnswers {
+      rebaseCalls++
+      check(rebaseCalls <= 20) { "Rebase requested $rebaseCalls times without giving up" }
+      RebaseResult(rebaseInProgress = true, mergeError = null)
+    }
+
+    val exception = assertThrows<CannotMergeException> {
+      rebaseHelper.rebaseIfNeeded(1L)
+    }
+
+    assertThat(exception.message).contains("up to date")
+    assertThat(rebaseCalls).isEqualTo(10)
   }
 
   @Test
