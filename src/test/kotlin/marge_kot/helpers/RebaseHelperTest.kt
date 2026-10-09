@@ -263,6 +263,13 @@ class RebaseHelperTest : BaseTest(), KoinComponent {
       rebaseInProgress = false,
       mergeError = "Stale error from an earlier attempt",
     )
+    val failedRebaseMergeRequest = createTestMergeRequest(
+      id = 1L,
+      targetBranch = "main",
+      diffRefs = DiffRefs(baseSha = oldBaseSha, headSha = "head456"),
+      rebaseInProgress = false,
+      mergeError = "Rebase failed: Rebase locally, resolve all conflicts, then push the branch.",
+    )
     val updatedMergeRequest = createTestMergeRequest(
       id = 1L,
       targetBranch = "main",
@@ -271,13 +278,19 @@ class RebaseHelperTest : BaseTest(), KoinComponent {
     )
     val branch = createTestBranch(name = "main", commitSha = targetSha)
 
-    coEvery { mockRepository.getMergeRequest(1L) } returnsMany listOf(staleErrorMergeRequest, updatedMergeRequest)
+    coEvery { mockRepository.getMergeRequest(1L) } returnsMany listOf(
+      staleErrorMergeRequest,
+      failedRebaseMergeRequest,
+      failedRebaseMergeRequest,
+      failedRebaseMergeRequest,
+      updatedMergeRequest,
+    )
     coEvery { mockRepository.getBranchInfo("main") } returns branch
     coEvery { mockRepository.rebaseMergeRequest(1L) } returns RebaseResult(rebaseInProgress = true, mergeError = null)
 
     rebaseHelper.rebaseIfNeeded(1L)
 
-    coVerify(exactly = 1) { mockRepository.rebaseMergeRequest(1L) }
+    coVerify(exactly = 4) { mockRepository.rebaseMergeRequest(1L) }
   }
 
   @Test
