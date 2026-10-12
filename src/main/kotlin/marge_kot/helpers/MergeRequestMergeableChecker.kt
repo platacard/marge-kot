@@ -5,6 +5,7 @@ import marge_kot.data.Repository
 import marge_kot.data.dto.CannotMergeException
 import marge_kot.data.dto.merge_request.MergeRequest
 import marge_kot.data.dto.merge_request.MergeStatus
+import marge_kot.data.dto.user.User
 
 class MergeRequestMergeableChecker(
   private val repository: Repository,
@@ -28,15 +29,14 @@ class MergeRequestMergeableChecker(
       checkForNoConflicts()
       if (assignCheckIsNeeded) {
         Napier.v("Check if bot is still assigned to merge request $id")
-        checkIfBotStillAssigned()
+        checkIfBotStillAssigned(repository.getUserInfo())
       }
     }
   }
+}
 
-  private suspend fun MergeRequest.checkIfBotStillAssigned() {
-    val user = repository.getUserInfo()
-    if (!assignees.contains(user)) throw CannotMergeException("I was unassigned")
-  }
+fun MergeRequest.checkIfBotStillAssigned(bot: User) {
+  if (!assignees.contains(bot)) throw CannotMergeException("I was unassigned")
 }
 
 fun MergeRequest.checkForNoConflicts() {
