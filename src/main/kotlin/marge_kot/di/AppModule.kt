@@ -37,6 +37,9 @@ val appModule = module {
 internal fun parseMergeTimeout(minutes: String?): Duration {
   if (minutes == null) return 90.minutes
   val value = minutes.toLongOrNull()
-  if (value == null || value <= 0) error("MARGE_KOT_MERGE_TIMEOUT_MINUTES must be a positive number of minutes, got '$minutes'")
-  return value.minutes
+  val timeout = value?.minutes
+  if (timeout == null || !timeout.isPositive() || !timeout.isFinite()) {
+    error("MARGE_KOT_MERGE_TIMEOUT_MINUTES must be a positive finite number of minutes, got '$minutes'")
+  }
+  return timeout
 }

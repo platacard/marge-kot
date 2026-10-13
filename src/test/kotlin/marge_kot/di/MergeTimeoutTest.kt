@@ -15,7 +15,7 @@ class MergeTimeoutTest {
   }
 
   @ParameterizedTest
-  @ValueSource(strings = ["0", "-5", "90m"])
+  @ValueSource(strings = ["0", "-5", "90m", "153722867280912"])
   fun `parseMergeTimeout should reject value that is not a positive number of minutes`(value: String) {
     assertThrows<IllegalStateException> { parseMergeTimeout(value) }
   }

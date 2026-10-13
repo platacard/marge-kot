@@ -301,6 +301,29 @@ class LabelHandlerTest : BaseTest(), KoinComponent {
   }
 
   @Test
+  fun `processLabeledMergeRequests should assign merge requests whose canceled pipeline belongs to an older commit`() = runTest {
+    val user = createTestUser(id = 100L, username = "test-bot")
+    val stalePipeline = createTestPipeline(id = 1L, sha = "oldHead123", status = Pipeline.Status.CANCELED)
+    val mergeRequest = createTestMergeRequest(
+      id = 1L,
+      diffRefs = DiffRefs(baseSha = "base123", headSha = "head456"),
+      pipeline = stalePipeline,
+      labels = listOf(testLabel),
+      assignees = emptyList(),
+    )
+
+    coEvery { mockRepository.getOpenedMergeRequests("main", Scope.ALL, testLabel) } returns listOf(mergeRequest)
+    coEvery { mockRepository.checkIfMergeRequestApproved(1L) } returns true
+    coEvery { mockRepository.getMergeRequest(1L) } returns mergeRequest
+    coEvery { mockRepository.getPipeline(1L) } returns stalePipeline
+    coEvery { mockRepository.getUserInfo() } returns user
+
+    labelHandler.processLabeledMergeRequests("main")
+
+    coVerify { mockRepository.assignMergeRequestTo(1L, listOf(user)) }
+  }
+
+  @Test
   fun `processLabeledMergeRequests should assign merge requests with skipped pipeline when project allows merging it`() = runTest {
     val headSha = "head456"
     val user = createTestUser(id = 100L, username = "test-bot")

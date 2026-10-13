@@ -51,6 +51,7 @@ class LabelHandler(
 
   private suspend fun checkIfPipelineNotFailed(mergeRequest: MergeRequest) {
     val pipeline = pipelineChecker.getPipelineOrNull(mergeRequest)
+    if (pipeline?.sha != mergeRequest.diffRefs?.headSha) return
     val status = pipeline?.status
     val givesUp = when (status) {
       Pipeline.Status.FAILED, Pipeline.Status.CANCELED -> true
