@@ -15,6 +15,17 @@ Before using, you need to configure the bot by setting the following environment
 - `MARGE_KOT_BASE_API` — The base URL for interacting with your GitLab API. Example: `https://gitlab.com/api/v4/`.
 - `MARGE_KOT_ADD_REQUEST_LOGS` — Enable logging of network requests and responses.
 - `MARGE_KOT_AUTO_MERGE_LABEL` — The label that the bot will use to find Merge Requests for auto-merging. If set, the bot will assign and merge MRs with this label when they are ready.
+- `MARGE_KOT_MERGE_TIMEOUT_MINUTES` — How long the bot may spend on one Merge Request, including all rebases and pipeline waits. Must be a positive whole number; the bot refuses to start otherwise. Default: `90`.
+
+## When the bot gives up
+The bot works on one Merge Request at a time. It leaves a comment, unassigns itself and moves on to the next Merge Request when:
+
+- the MR is a draft, lacks approvals, has unresolved blocking discussions or conflicts;
+- the pipeline failed or was canceled;
+- the pipeline was skipped (for example, the head commit has `[skip ci]`) while the project requires a successful pipeline and does not treat skipped pipelines as successful;
+- the MR is not merged within `MARGE_KOT_MERGE_TIMEOUT_MINUTES`, e.g. the pipeline waits for a manual job or never starts;
+- the target branch moved during the pipeline more than 5 times while processing this MR;
+- a rebase does not finish within 10 minutes or fails repeatedly.
 
 ## Running
 

@@ -8,11 +8,21 @@ import marge_kot.helpers.PipelineChecker
 import marge_kot.helpers.RebaseHelper
 import org.koin.core.module.dsl.singleOf
 import org.koin.dsl.module
+import kotlin.time.Duration
+import kotlin.time.Duration.Companion.minutes
 
 val appModule = module {
   singleOf(::Repository)
   singleOf(::MergeRequestMergeableChecker)
-  singleOf(::MergeHelper)
+  single(createdAtStart = true) {
+    MergeHelper(
+      repository = get(),
+      mergeableChecker = get(),
+      rebaseHelper = get(),
+      pipelineChecker = get(),
+      mergeTimeout = parseMergeTimeout(System.getenv("MARGE_KOT_MERGE_TIMEOUT_MINUTES")),
+    )
+  }
   single {
     LabelHandler(
       repository = get(),
@@ -23,4 +33,10 @@ val appModule = module {
   }
   singleOf(::PipelineChecker)
   singleOf(::RebaseHelper)
+}
+internal fun parseMergeTimeout(minutes: String?): Duration {
+  if (minutes == null) return 90.minutes
+  val value = minutes.toLongOrNull()
+  if (value == null || value <= 0) error("MARGE_KOT_MERGE_TIMEOUT_MINUTES must be a positive number of minutes, got '$minutes'")
+  return value.minutes
 }

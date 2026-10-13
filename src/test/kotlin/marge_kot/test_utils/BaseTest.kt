@@ -13,6 +13,7 @@ import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.BeforeEach
 import org.koin.core.module.dsl.singleOf
 import org.koin.dsl.module
+import kotlin.time.Duration.Companion.minutes
 
 abstract class BaseTest {
 
@@ -25,7 +26,15 @@ abstract class BaseTest {
     val testModule = module {
       single<Repository> { mockRepository }
       singleOf(::MergeRequestMergeableChecker)
-      singleOf(::MergeHelper)
+      single {
+        MergeHelper(
+          repository = get(),
+          mergeableChecker = get(),
+          rebaseHelper = get(),
+          pipelineChecker = get(),
+          mergeTimeout = 90.minutes,
+        )
+      }
       single {
         LabelHandler(
           repository = get(),

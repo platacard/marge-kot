@@ -254,4 +254,3 @@ class PipelineCheckerTest : BaseTest(), KoinComponent {
     coVerify { mockRepository.getBranchInfo(targetBranch) }
   }
 }
-
