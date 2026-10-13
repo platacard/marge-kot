@@ -8,6 +8,8 @@ import marge_kot.data.Repository
 import marge_kot.data.dto.CannotMergeException
 import marge_kot.data.dto.NeedRebaseException
 
+private const val MAX_REBASE_RESTARTS = 5
+
 class MergeHelper(
   private val repository: Repository,
   private val mergeableChecker: MergeRequestMergeableChecker,
@@ -17,6 +19,7 @@ class MergeHelper(
 
   suspend fun merge(mergeRequestId: Long) {
     Napier.i("Starting merge process for MR $mergeRequestId")
+    var rebaseRestarts = 0
     while (true) {
       try {
         mergeableChecker.check(
@@ -41,7 +44,16 @@ class MergeHelper(
         giveUp(mergeRequestId, "Gitlab is not responding: ${ex.message}")
         return
       } catch (_: NeedRebaseException) {
-        Napier.i("Need rebase again for MR $mergeRequestId")
+        rebaseRestarts++
+        if (rebaseRestarts > MAX_REBASE_RESTARTS) {
+          Napier.e("Giving up on MR $mergeRequestId after $MAX_REBASE_RESTARTS rebase restarts")
+          giveUp(
+            mergeRequestId,
+            "I can't merge this merge request: it was rebased $MAX_REBASE_RESTARTS times but target branch kept moving"
+          )
+          return
+        }
+        Napier.i("Need rebase again for MR $mergeRequestId, restart $rebaseRestarts of $MAX_REBASE_RESTARTS")
         commentOrLogFailure(mergeRequestId, "Hmm, I guess I should try again")
         continue
       } catch (ex: CannotMergeException) {

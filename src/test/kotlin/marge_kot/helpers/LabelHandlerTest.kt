@@ -1,5 +1,6 @@
 package marge_kot.helpers
 
+import marge_kot.data.dto.Project
 import io.mockk.coEvery
 import io.mockk.coVerify
 import kotlinx.coroutines.test.runTest
@@ -11,6 +12,8 @@ import marge_kot.test_utils.TestUtils.createTestMergeRequest
 import marge_kot.test_utils.TestUtils.createTestPipeline
 import marge_kot.test_utils.TestUtils.createTestUser
 import org.junit.jupiter.api.Test
+import org.junit.jupiter.params.ParameterizedTest
+import org.junit.jupiter.params.provider.EnumSource
 import org.koin.core.component.KoinComponent
 import org.koin.core.component.inject
 
@@ -270,6 +273,56 @@ class LabelHandlerTest : BaseTest(), KoinComponent {
     coVerify(exactly = 0) { 
       mockRepository.assignMergeRequestTo(2L, any())
     }
+  }
+
+  @ParameterizedTest
+  @EnumSource(value = Pipeline.Status::class, names = ["SKIPPED", "CANCELED"])
+  fun `processLabeledMergeRequests should skip merge requests whose pipeline the bot would give up on`(
+    status: Pipeline.Status,
+  ) = runTest {
+    val headSha = "head456"
+    val mergeRequest = createTestMergeRequest(
+      id = 1L,
+      diffRefs = DiffRefs(baseSha = "base123", headSha = headSha),
+      pipeline = createTestPipeline(id = 1L, sha = headSha, status = status),
+      labels = listOf(testLabel),
+      assignees = emptyList(),
+    )
+
+    coEvery { mockRepository.getOpenedMergeRequests("main", Scope.ALL, testLabel) } returns listOf(mergeRequest)
+    coEvery { mockRepository.checkIfMergeRequestApproved(1L) } returns true
+    coEvery { mockRepository.getMergeRequest(1L) } returns mergeRequest
+    coEvery { mockRepository.getPipeline(1L) } returns createTestPipeline(id = 1L, sha = headSha, status = status)
+    coEvery { mockRepository.getProject() } returns Project(onlyAllowMergeIfPipelineSucceeds = true, allowMergeOnSkippedPipeline = false)
+
+    labelHandler.processLabeledMergeRequests("main")
+
+    coVerify(exactly = 0) { mockRepository.assignMergeRequestTo(any(), any()) }
+  }
+
+  @Test
+  fun `processLabeledMergeRequests should assign merge requests with skipped pipeline when project allows merging it`() = runTest {
+    val headSha = "head456"
+    val user = createTestUser(id = 100L, username = "test-bot")
+    val pipeline = createTestPipeline(id = 1L, sha = headSha, status = Pipeline.Status.SKIPPED)
+    val mergeRequest = createTestMergeRequest(
+      id = 1L,
+      diffRefs = DiffRefs(baseSha = "base123", headSha = headSha),
+      pipeline = pipeline,
+      labels = listOf(testLabel),
+      assignees = emptyList(),
+    )
+
+    coEvery { mockRepository.getOpenedMergeRequests("main", Scope.ALL, testLabel) } returns listOf(mergeRequest)
+    coEvery { mockRepository.checkIfMergeRequestApproved(1L) } returns true
+    coEvery { mockRepository.getMergeRequest(1L) } returns mergeRequest
+    coEvery { mockRepository.getPipeline(1L) } returns pipeline
+    coEvery { mockRepository.getProject() } returns Project(onlyAllowMergeIfPipelineSucceeds = true, allowMergeOnSkippedPipeline = true)
+    coEvery { mockRepository.getUserInfo() } returns user
+
+    labelHandler.processLabeledMergeRequests("main")
+
+    coVerify { mockRepository.assignMergeRequestTo(1L, listOf(user)) }
   }
 
   @Test

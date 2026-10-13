@@ -1,5 +1,6 @@
 package marge_kot.helpers
 
+import marge_kot.data.dto.Project
 import com.google.common.truth.Truth.assertThat
 import io.ktor.client.plugins.HttpRequestTimeoutException
 import io.ktor.client.plugins.ServerResponseException
@@ -8,6 +9,7 @@ import io.mockk.coVerify
 import org.junit.jupiter.api.assertThrows
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.test.runTest
+import kotlin.time.Duration.Companion.seconds
 import marge_kot.data.Repository
 import marge_kot.data.dto.CannotMergeException
 import marge_kot.data.dto.NeedRebaseException
@@ -86,10 +88,15 @@ class MergeHelperTest : BaseTest(), KoinComponent {
     coEvery { mockRepository.getMergeRequest(1L) } returns mergeRequest
     coEvery { mockRepository.checkIfMergeRequestApproved(1L) } returns true
     coEvery { mockRepository.getUserInfo() } returns user
-    coEvery { mockRepository.getBranchInfo(targetBranch) } returns branch
-    coEvery { mockRepository.getPipeline(1L) } returnsMany listOf(
-      createTestPipeline(id = 1L, sha = headSha, status = Pipeline.Status.SKIPPED),
-      createTestPipeline(id = 1L, sha = headSha, status = Pipeline.Status.SUCCESS)
+    coEvery { mockRepository.getBranchInfo(targetBranch) } returnsMany listOf(
+      branch,
+      createTestBranch(name = targetBranch, commitSha = "moved789"),
+      branch,
+    )
+    coEvery { mockRepository.getPipeline(1L) } returns createTestPipeline(
+      id = 1L,
+      sha = headSha,
+      status = Pipeline.Status.SUCCESS
     )
     coEvery { mockRepository.rebaseMergeRequest(any()) } returns RebaseResult(
       rebaseInProgress = false,
@@ -262,5 +269,58 @@ class MergeHelperTest : BaseTest(), KoinComponent {
     coEvery { mockRepository.addCommentToMergeRequest(any(), any()) } throws CancellationException("Shutdown")
 
     assertThrows<CancellationException> { mergeHelper.merge(1L) }
+  }
+
+  @Test
+  fun `merge should give up when pipeline of up to date merge request is skipped`() = runTest(timeout = 5.seconds) {
+    val user = createTestUser(id = 1L)
+    val skippedPipeline = createTestPipeline(id = 1L, sha = "head456", status = Pipeline.Status.SKIPPED)
+    val mergeRequest = createTestMergeRequest(
+      id = 1L,
+      assignees = listOf(user),
+      diffRefs = DiffRefs(baseSha = "base123", headSha = "head456"),
+      pipeline = skippedPipeline,
+    )
+
+    coEvery { mockRepository.getMergeRequest(1L) } returns mergeRequest
+    coEvery { mockRepository.checkIfMergeRequestApproved(1L) } returns true
+    coEvery { mockRepository.getUserInfo() } returns user
+    coEvery { mockRepository.getBranchInfo("main") } returns createTestBranch(name = "main", commitSha = "base123")
+    coEvery { mockRepository.getPipeline(1L) } returns skippedPipeline
+    coEvery { mockRepository.getProject() } returns Project(onlyAllowMergeIfPipelineSucceeds = true, allowMergeOnSkippedPipeline = false)
+
+    mergeHelper.merge(1L)
+
+    coVerify(exactly = 0) { mockRepository.merge(any()) }
+    coVerify(exactly = 0) { mockRepository.addCommentToMergeRequest(1L, "Hmm, I guess I should try again") }
+    coVerify { mockRepository.addCommentToMergeRequest(1L, "I can't merge this merge request: Pipeline was skipped and the project requires a successful pipeline") }
+    coVerify { mockRepository.assignMergeRequestTo(1L, emptyList()) }
+  }
+
+  @Test
+  fun `merge should give up when target branch keeps moving during pipeline`() = runTest(timeout = 5.seconds) {
+    val user = createTestUser(id = 1L)
+    val mergeRequest = createTestMergeRequest(
+      id = 1L,
+      assignees = listOf(user),
+      diffRefs = DiffRefs(baseSha = "base123", headSha = "head456"),
+      pipeline = createTestPipeline(id = 1L, sha = "head456", status = Pipeline.Status.RUNNING),
+    )
+    var branchInfoCalls = 0
+
+    coEvery { mockRepository.getMergeRequest(1L) } returns mergeRequest
+    coEvery { mockRepository.checkIfMergeRequestApproved(1L) } returns true
+    coEvery { mockRepository.getUserInfo() } returns user
+    coEvery { mockRepository.getBranchInfo("main") } answers {
+      val sha = if (branchInfoCalls++ % 2 == 0) "base123" else "moved789"
+      createTestBranch(name = "main", commitSha = sha)
+    }
+
+    mergeHelper.merge(1L)
+
+    coVerify(exactly = 0) { mockRepository.merge(any()) }
+    coVerify(exactly = 5) { mockRepository.addCommentToMergeRequest(1L, "Hmm, I guess I should try again") }
+    coVerify { mockRepository.addCommentToMergeRequest(1L, match { it.contains("target branch kept moving") }) }
+    coVerify { mockRepository.assignMergeRequestTo(1L, emptyList()) }
   }
 }

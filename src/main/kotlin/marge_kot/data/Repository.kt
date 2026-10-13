@@ -16,6 +16,7 @@ import io.ktor.client.plugins.resources.put
 import io.ktor.client.request.bearerAuth
 import io.ktor.serialization.kotlinx.json.json
 import kotlinx.serialization.json.Json
+import marge_kot.data.dto.Project
 import marge_kot.data.dto.ProjectRequest
 import marge_kot.data.dto.common.OrderBy
 import marge_kot.data.dto.common.Scope
@@ -95,6 +96,10 @@ class Repository {
         id = id,
       )
     ).body()
+  }
+
+  suspend fun getProject(): Project {
+    return client.get(projectRequest).body()
   }
 
   suspend fun getUserInfo(): User {
