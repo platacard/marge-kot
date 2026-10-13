@@ -3,6 +3,7 @@ package marge_kot.helpers
 import io.github.aakira.napier.Napier
 import io.ktor.client.plugins.HttpRequestTimeoutException
 import io.ktor.client.plugins.ServerResponseException
+import kotlinx.coroutines.CancellationException
 import marge_kot.data.Repository
 import marge_kot.data.dto.CannotMergeException
 import marge_kot.data.dto.NeedRebaseException
@@ -33,44 +34,40 @@ class MergeHelper(
         return
       } catch (ex: ServerResponseException) {
         Napier.e("Something happened with Gitlab", ex)
-        repository.addCommentToMergeRequest(
-          mergeRequestId = mergeRequestId,
-          message = "Something happened with Gitlab: ${ex.message}"
-        )
-        unassignBot(repository, mergeRequestId)
+        giveUp(mergeRequestId, "Something happened with Gitlab: ${ex.message}")
         return
       } catch (ex: HttpRequestTimeoutException) {
         Napier.e("Request timeout", ex)
-        repository.addCommentToMergeRequest(
-          mergeRequestId = mergeRequestId,
-          message = "Gitlab is not responding: ${ex.message}"
-        )
-        unassignBot(repository, mergeRequestId)
+        giveUp(mergeRequestId, "Gitlab is not responding: ${ex.message}")
         return
       } catch (_: NeedRebaseException) {
         Napier.i("Need rebase again for MR $mergeRequestId")
-        repository.addCommentToMergeRequest(
-          mergeRequestId = mergeRequestId,
-          message = "Hmm, I guess I should try again"
-        )
+        commentOrLogFailure(mergeRequestId, "Hmm, I guess I should try again")
         continue
       } catch (ex: CannotMergeException) {
         Napier.e("Can't merge MR $mergeRequestId: ${ex.message}", ex)
-        repository.addCommentToMergeRequest(
-          mergeRequestId = mergeRequestId,
-          message = "I can't merge this merge request: ${ex.message}"
-        )
-        unassignBot(repository, mergeRequestId)
+        giveUp(mergeRequestId, "I can't merge this merge request: ${ex.message}")
         return
       } catch (ex: Throwable) {
         Napier.e("Unhandled exception for MR $mergeRequestId", ex)
-        repository.addCommentToMergeRequest(
-          mergeRequestId = mergeRequestId,
-          message = "Something bad happened. Please check my logs"
-        )
-        unassignBot(repository, mergeRequestId)
+        giveUp(mergeRequestId, "Something bad happened. Please check my logs")
         return
       }
+    }
+  }
+
+  private suspend fun giveUp(mergeRequestId: Long, message: String) {
+    commentOrLogFailure(mergeRequestId, message)
+    unassignBot(repository, mergeRequestId)
+  }
+
+  private suspend fun commentOrLogFailure(mergeRequestId: Long, message: String) {
+    try {
+      repository.addCommentToMergeRequest(mergeRequestId = mergeRequestId, message = message)
+    } catch (ex: CancellationException) {
+      throw ex
+    } catch (ex: Throwable) {
+      Napier.e("Failed to comment on MR $mergeRequestId", ex)
     }
   }
 }

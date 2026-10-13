@@ -5,6 +5,8 @@ import io.ktor.client.plugins.HttpRequestTimeoutException
 import io.ktor.client.plugins.ServerResponseException
 import io.mockk.coEvery
 import io.mockk.coVerify
+import org.junit.jupiter.api.assertThrows
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.test.runTest
 import marge_kot.data.Repository
 import marge_kot.data.dto.CannotMergeException
@@ -220,5 +222,45 @@ class MergeHelperTest : BaseTest(), KoinComponent {
       )
     }
   }
-}
 
+  @Test
+  fun `merge should still unassign bot when posting the failure comment fails`() = runTest {
+    val user = createTestUser(id = 1L)
+    val mergeRequest = createTestMergeRequest(id = 1L, draft = true, assignees = listOf(user))
+
+    coEvery { mockRepository.getMergeRequest(1L) } returns mergeRequest
+    coEvery { mockRepository.getUserInfo() } returns user
+    coEvery { mockRepository.addCommentToMergeRequest(any(), any()) } throws RuntimeException("GitLab is down")
+
+    mergeHelper.merge(1L)
+
+    coVerify { mockRepository.assignMergeRequestTo(1L, emptyList()) }
+  }
+
+  @Test
+  fun `merge should propagate failure to unassign the bot after commenting`() = runTest {
+    val user = createTestUser(id = 1L)
+    val mergeRequest = createTestMergeRequest(id = 1L, draft = true, assignees = listOf(user))
+
+    coEvery { mockRepository.getMergeRequest(1L) } returns mergeRequest
+    coEvery { mockRepository.getUserInfo() } returns user
+    coEvery { mockRepository.assignMergeRequestTo(any(), any()) } throws RuntimeException("GitLab is down")
+
+    assertThrows<RuntimeException> { mergeHelper.merge(1L) }
+
+    coVerify(exactly = 0) { mockRepository.merge(any()) }
+    coVerify(exactly = 1) { mockRepository.addCommentToMergeRequest(1L, "I can't merge this merge request: I can't merge drafts") }
+  }
+
+  @Test
+  fun `merge should propagate cancellation while giving up`() = runTest {
+    val user = createTestUser(id = 1L)
+    val mergeRequest = createTestMergeRequest(id = 1L, draft = true, assignees = listOf(user))
+
+    coEvery { mockRepository.getMergeRequest(1L) } returns mergeRequest
+    coEvery { mockRepository.getUserInfo() } returns user
+    coEvery { mockRepository.addCommentToMergeRequest(any(), any()) } throws CancellationException("Shutdown")
+
+    assertThrows<CancellationException> { mergeHelper.merge(1L) }
+  }
+}

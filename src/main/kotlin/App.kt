@@ -1,4 +1,5 @@
 import io.github.aakira.napier.Napier
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.runBlocking
 import marge_kot.data.Repository
@@ -35,23 +36,38 @@ class App : KoinComponent {
   private val mergeHelper: MergeHelper by inject()
 
   suspend fun main() {
+    val targetBranch = System.getenv("MARGE_KOT_TARGET_BRANCH") ?: error("Please provide target branch")
     while (true) {
-      val targetBranch = System.getenv("MARGE_KOT_TARGET_BRANCH") ?: error("Please provide target branch")
-      Napier.v("Check if any open merge requests assigned to me for target branch $targetBranch")
-      labelHandler.processLabeledMergeRequests(targetBranch)
-      Napier.v("Fetch opened merge requests assigned to me for target branch $targetBranch")
-      val assignedOpenedMergeRequests = repository.getOpenedMergeRequests(
-        scope = Scope.ASSIGNED_TO_ME,
-        targetBranch = targetBranch
-      )
-      if (assignedOpenedMergeRequests.isNotEmpty()) {
-        val mergeRequest = assignedOpenedMergeRequests.first()
-        Napier.v("Merge request with id ${mergeRequest.id} found")
-        mergeHelper.merge(mergeRequest.id)
-      } else {
-        Napier.v("Sleep for ${sleepTimeMs.milliseconds}")
-        delay(sleepTimeMs)
-      }
+      runIteration(targetBranch)
+    }
+  }
+
+  suspend fun runIteration(targetBranch: String) {
+    try {
+      processMergeRequests(targetBranch)
+    } catch (ex: CancellationException) {
+      throw ex
+    } catch (ex: Throwable) {
+      Napier.e("Iteration failed, retry in ${sleepTimeMs.milliseconds}", ex)
+      delay(sleepTimeMs)
+    }
+  }
+
+  private suspend fun processMergeRequests(targetBranch: String) {
+    Napier.v("Check if any open merge requests assigned to me for target branch $targetBranch")
+    labelHandler.processLabeledMergeRequests(targetBranch)
+    Napier.v("Fetch opened merge requests assigned to me for target branch $targetBranch")
+    val assignedOpenedMergeRequests = repository.getOpenedMergeRequests(
+      scope = Scope.ASSIGNED_TO_ME,
+      targetBranch = targetBranch
+    )
+    if (assignedOpenedMergeRequests.isNotEmpty()) {
+      val mergeRequest = assignedOpenedMergeRequests.first()
+      Napier.v("Merge request with id ${mergeRequest.id} found")
+      mergeHelper.merge(mergeRequest.id)
+    } else {
+      Napier.v("Sleep for ${sleepTimeMs.milliseconds}")
+      delay(sleepTimeMs)
     }
   }
 }
