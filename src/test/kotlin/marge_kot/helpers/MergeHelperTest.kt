@@ -323,7 +323,7 @@ class MergeHelperTest : BaseTest(), KoinComponent {
 
     coVerify(exactly = 0) { mockRepository.merge(any()) }
     coVerify(exactly = 5) { mockRepository.addCommentToMergeRequest(1L, "Hmm, I guess I should try again") }
-    coVerify { mockRepository.addCommentToMergeRequest(1L, match { it.contains("target branch kept moving") }) }
+    coVerify { mockRepository.addCommentToMergeRequest(1L, match { it.contains("target branch kept moving") && it.endsWith("Assign me again to retry") }) }
     coVerify { mockRepository.assignMergeRequestTo(1L, emptyList()) }
   }
 
@@ -337,7 +337,7 @@ class MergeHelperTest : BaseTest(), KoinComponent {
   }
 
   @Test
-  fun `merge should count the deadline from the first attempt across rebase restarts`() = runTest(timeout = 5.seconds) {
+  fun `merge should give up at the overall ceiling when target keeps moving within the attempt deadline`() = runTest(timeout = 5.seconds) {
     val user = createTestUser(id = 1L)
     val pipeline = createTestPipeline(id = 1L, sha = "head456", status = Pipeline.Status.RUNNING)
     var mergeRequestBaseSha = "target0"
@@ -362,8 +362,78 @@ class MergeHelperTest : BaseTest(), KoinComponent {
 
     mergeHelper.merge(1L)
 
-    coVerify(exactly = 1) { mockRepository.addCommentToMergeRequest(1L, "Hmm, I guess I should try again") }
-    thenGaveUpOnDeadline()
+    assertThat(testScheduler.currentTime).isAtLeast(270.minutes.inWholeMilliseconds)
+    assertThat(testScheduler.currentTime).isLessThan(271.minutes.inWholeMilliseconds)
+    coVerify(exactly = 4) { mockRepository.addCommentToMergeRequest(1L, "Hmm, I guess I should try again") }
+    coVerify(exactly = 1) { mockRepository.addCommentToMergeRequest(1L, "I can't merge this merge request: it was not merged in 4h 30m. Assign me again to retry") }
+    coVerify(exactly = 0) { mockRepository.merge(any()) }
+    coVerify { mockRepository.assignMergeRequestTo(1L, emptyList()) }
+  }
+
+  @Test
+  fun `merge should merge when target moves during a long pipeline and the rebased pipeline finishes`() = runTest(timeout = 5.seconds) {
+    val user = createTestUser(id = 1L)
+    var mergeRequestBaseSha = "target0"
+    var pipelineStartedAt = 0L
+    fun targetSha() = if (testScheduler.currentTime < 40.minutes.inWholeMilliseconds) "target0" else "target1"
+    fun pipeline() = createTestPipeline(
+      id = 1L,
+      sha = "head456",
+      status = if (testScheduler.currentTime - pipelineStartedAt >= 55.minutes.inWholeMilliseconds) {
+        Pipeline.Status.SUCCESS
+      } else {
+        Pipeline.Status.RUNNING
+      },
+    )
+
+    coEvery { mockRepository.getMergeRequest(1L) } answers {
+      createTestMergeRequest(
+        id = 1L,
+        assignees = listOf(user),
+        diffRefs = DiffRefs(baseSha = mergeRequestBaseSha, headSha = "head456"),
+        pipeline = createTestPipeline(id = 1L, sha = "head456"),
+      )
+    }
+    coEvery { mockRepository.checkIfMergeRequestApproved(1L) } returns true
+    coEvery { mockRepository.getUserInfo() } returns user
+    coEvery { mockRepository.getBranchInfo("main") } answers { createTestBranch(name = "main", commitSha = targetSha()) }
+    coEvery { mockRepository.rebaseMergeRequest(1L) } answers {
+      mergeRequestBaseSha = targetSha()
+      pipelineStartedAt = testScheduler.currentTime
+      RebaseResult(rebaseInProgress = false, mergeError = null)
+    }
+    coEvery { mockRepository.getPipeline(1L) } answers { pipeline() }
+    var merged = false
+    coEvery { mockRepository.merge(1L) } answers { merged = true }
+
+    mergeHelper.merge(1L)
+
+    assertThat(merged).isTrue()
+    coVerify(exactly = 0) { mockRepository.addCommentToMergeRequest(1L, match { it.startsWith("I can't merge") }) }
+    coVerify(exactly = 0) { mockRepository.assignMergeRequestTo(any(), any()) }
+  }
+
+  @Test
+  fun `merge should not give up when the merge request is slower than every deadline`() = runTest(timeout = 5.seconds) {
+    givenUpToDateMergeRequest(createTestPipeline(id = 1L, sha = "head456", status = Pipeline.Status.SUCCESS))
+    coEvery { mockRepository.merge(1L) } coAnswers { delay(300.minutes) }
+
+    mergeHelper.merge(1L)
+
+    coVerify { mockRepository.merge(1L) }
+    coVerify(exactly = 0) { mockRepository.addCommentToMergeRequest(any(), any()) }
+    coVerify(exactly = 0) { mockRepository.assignMergeRequestTo(any(), any()) }
+  }
+
+  @Test
+  fun `merge should give up when the merge request fails`() = runTest(timeout = 5.seconds) {
+    givenUpToDateMergeRequest(createTestPipeline(id = 1L, sha = "head456", status = Pipeline.Status.SUCCESS))
+    coEvery { mockRepository.merge(1L) } throws RuntimeException("405 Method Not Allowed")
+
+    mergeHelper.merge(1L)
+
+    coVerify(exactly = 1) { mockRepository.addCommentToMergeRequest(1L, "Something bad happened. Please check my logs") }
+    coVerify { mockRepository.assignMergeRequestTo(1L, emptyList()) }
   }
 
   @Test
@@ -373,7 +443,7 @@ class MergeHelperTest : BaseTest(), KoinComponent {
 
     coEvery { mockRepository.getMergeRequest(1L) } returns mergeRequest
     coEvery { mockRepository.getUserInfo() } returns user
-    coEvery { mockRepository.assignMergeRequestTo(any(), any()) } coAnswers { delay(91.minutes) }
+    coEvery { mockRepository.assignMergeRequestTo(any(), any()) } coAnswers { delay(300.minutes) }
 
     mergeHelper.merge(1L)
 
@@ -397,11 +467,10 @@ class MergeHelperTest : BaseTest(), KoinComponent {
   }
 
   private fun TestScope.thenGaveUpOnDeadline() {
-    assertThat(testScheduler.currentTime).isAtLeast(90.minutes.inWholeMilliseconds)
-    assertThat(testScheduler.currentTime).isLessThan(91.minutes.inWholeMilliseconds)
+    assertThat(testScheduler.currentTime).isEqualTo(90.minutes.inWholeMilliseconds)
     coVerify(exactly = 0) { mockRepository.merge(any()) }
-    coVerify(exactly = 1) { mockRepository.addCommentToMergeRequest(1L, match { it.startsWith("I can't merge") || it.startsWith("Something") }) }
-    coVerify { mockRepository.addCommentToMergeRequest(1L, "I can't merge this merge request: it was not merged in 1h 30m") }
+    coVerify(exactly = 1) { mockRepository.addCommentToMergeRequest(any(), any()) }
+    coVerify { mockRepository.addCommentToMergeRequest(1L, "I can't merge this merge request: an attempt took longer than 1h 30m. Assign me again to retry") }
     coVerify { mockRepository.assignMergeRequestTo(1L, emptyList()) }
   }
 }

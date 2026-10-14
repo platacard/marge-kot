@@ -83,8 +83,12 @@ class PipelineCheckerTest : BaseTest(), KoinComponent {
     coVerify { mockRepository.getPipeline(1L) }
   }
 
-  @Test
-  fun `checkIfPipelineFinished should throw CannotMergeException when pipeline is skipped`() = runTest {
+  @ParameterizedTest
+  @CsvSource("true,false", "true,")
+  fun `checkIfPipelineFinished should throw CannotMergeException when pipeline is skipped and project requires success`(
+    onlyAllowMergeIfPipelineSucceeds: Boolean,
+    allowMergeOnSkippedPipeline: Boolean?,
+  ) = runTest {
     val pipeline = createTestPipeline(id = 1L, sha = "head456", status = Pipeline.Status.SKIPPED)
     val mergeRequest = createTestMergeRequest(
       id = 1L,
@@ -93,7 +97,7 @@ class PipelineCheckerTest : BaseTest(), KoinComponent {
     )
     
     coEvery { mockRepository.getPipeline(1L) } returns pipeline
-    coEvery { mockRepository.getProject() } returns Project(onlyAllowMergeIfPipelineSucceeds = true, allowMergeOnSkippedPipeline = false)
+    coEvery { mockRepository.getProject() } returns Project(onlyAllowMergeIfPipelineSucceeds, allowMergeOnSkippedPipeline)
     val exception = assertThrows<CannotMergeException> {
       pipelineChecker.checkIfPipelineFinished(mergeRequest)
     }

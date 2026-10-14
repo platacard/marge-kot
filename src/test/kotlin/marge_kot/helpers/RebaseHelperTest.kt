@@ -4,6 +4,7 @@ import com.google.common.truth.Truth.assertThat
 import io.mockk.coEvery
 import io.mockk.coVerify
 import kotlinx.coroutines.test.runTest
+import kotlin.time.Duration.Companion.minutes
 import kotlin.time.Duration.Companion.seconds
 import marge_kot.data.Repository
 import marge_kot.data.dto.CannotMergeException
@@ -364,5 +365,6 @@ class RebaseHelperTest : BaseTest(), KoinComponent {
     val exception = assertThrows<CannotMergeException> { rebaseHelper.rebaseIfNeeded(1L) }
 
     assertThat(exception.message).isEqualTo("Rebase did not finish in 10m")
+    assertThat(testScheduler.currentTime).isEqualTo(10.minutes.inWholeMilliseconds)
   }
 }

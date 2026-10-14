@@ -2,6 +2,7 @@ package marge_kot.di
 
 import marge_kot.data.Repository
 import marge_kot.helpers.LabelHandler
+import marge_kot.helpers.MERGE_CEILING_ATTEMPTS
 import marge_kot.helpers.MergeHelper
 import marge_kot.helpers.MergeRequestMergeableChecker
 import marge_kot.helpers.PipelineChecker
@@ -38,7 +39,7 @@ internal fun parseMergeTimeout(minutes: String?): Duration {
   if (minutes == null) return 90.minutes
   val value = minutes.toLongOrNull()
   val timeout = value?.minutes
-  if (timeout == null || !timeout.isPositive() || !timeout.isFinite()) {
+  if (timeout == null || !timeout.isPositive() || !(timeout * MERGE_CEILING_ATTEMPTS).isFinite()) {
     error("MARGE_KOT_MERGE_TIMEOUT_MINUTES must be a positive finite number of minutes, got '$minutes'")
   }
   return timeout
