@@ -41,7 +41,10 @@ class PipelineChecker(
 
   suspend fun checkIfPipelineFinished(mergeRequest: MergeRequest): Boolean {
     Napier.v("Get pipeline for current merge request")
-    val pipeline = getPipelineOrNull(mergeRequest) ?: throw NeedRebaseException()
+    val pipeline = getPipelineOrNull(mergeRequest) ?: run {
+      Napier.v("No pipeline yet for MR ${mergeRequest.id}")
+      return false
+    }
     Napier.v("Check if pipeline is actual")
     if (mergeRequest.diffRefs?.headSha != pipeline.sha) {
       Napier.v("Need to wait for a fresh pipeline")
@@ -52,9 +55,18 @@ class PipelineChecker(
       Pipeline.Status.SUCCESS -> true
       Pipeline.Status.FAILED -> throw CannotMergeException("Pipeline failed")
       Pipeline.Status.CANCELED -> throw CannotMergeException("Pipeline was canceled")
-      Pipeline.Status.SKIPPED -> throw NeedRebaseException()
+      Pipeline.Status.SKIPPED -> if (canMergeWithSkippedPipeline()) {
+        true
+      } else {
+        throw CannotMergeException("Pipeline was skipped and the project requires a successful pipeline")
+      }
       else -> false
     }
+  }
+
+  suspend fun canMergeWithSkippedPipeline(): Boolean {
+    val project = repository.getProject()
+    return !project.onlyAllowMergeIfPipelineSucceeds || project.allowMergeOnSkippedPipeline == true
   }
 
   suspend fun getPipelineOrNull(mergeRequest: MergeRequest): Pipeline? {

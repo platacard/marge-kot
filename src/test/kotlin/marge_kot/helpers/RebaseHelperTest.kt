@@ -4,6 +4,8 @@ import com.google.common.truth.Truth.assertThat
 import io.mockk.coEvery
 import io.mockk.coVerify
 import kotlinx.coroutines.test.runTest
+import kotlin.time.Duration.Companion.minutes
+import kotlin.time.Duration.Companion.seconds
 import marge_kot.data.Repository
 import marge_kot.data.dto.CannotMergeException
 import marge_kot.data.dto.merge_request.DiffRefs
@@ -346,5 +348,23 @@ class RebaseHelperTest : BaseTest(), KoinComponent {
     coVerify { mockRepository.getMergeRequest(1L) }
     coVerify(exactly = 0) { mockRepository.rebaseMergeRequest(any()) }
   }
-}
 
+  @Test
+  fun `rebaseIfNeeded should give up when rebase stays in progress too long`() = runTest(timeout = 5.seconds) {
+    val user = createTestUser(id = 1L)
+    val mergeRequest = createTestMergeRequest(
+      id = 1L,
+      assignees = listOf(user),
+      diffRefs = DiffRefs(baseSha = "oldBase123", headSha = "head456"),
+      rebaseInProgress = true,
+    )
+
+    coEvery { mockRepository.getUserInfo() } returns user
+    coEvery { mockRepository.getMergeRequest(1L) } returns mergeRequest
+
+    val exception = assertThrows<CannotMergeException> { rebaseHelper.rebaseIfNeeded(1L) }
+
+    assertThat(exception.message).isEqualTo("Rebase did not finish in 10m")
+    assertThat(testScheduler.currentTime).isEqualTo(10.minutes.inWholeMilliseconds)
+  }
+}

@@ -51,7 +51,14 @@ class LabelHandler(
 
   private suspend fun checkIfPipelineNotFailed(mergeRequest: MergeRequest) {
     val pipeline = pipelineChecker.getPipelineOrNull(mergeRequest)
-    if (pipeline?.status == Pipeline.Status.FAILED) throw CannotMergeException("Pipeline failed")
+    if (pipeline?.sha != mergeRequest.diffRefs?.headSha) return
+    val status = pipeline?.status
+    val givesUp = when (status) {
+      Pipeline.Status.FAILED, Pipeline.Status.CANCELED -> true
+      Pipeline.Status.SKIPPED -> !pipelineChecker.canMergeWithSkippedPipeline()
+      else -> false
+    }
+    if (givesUp) throw CannotMergeException("Pipeline status is $status")
   }
 
   private suspend fun List<MergeRequest>.assignAllToKot() {
