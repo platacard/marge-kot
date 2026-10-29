@@ -15,6 +15,7 @@ import org.junit.jupiter.api.Test
 class RepositoryTest {
 
   private val requestedPages = mutableListOf<Int>()
+  private val requestedPageSizes = mutableListOf<String?>()
 
   @Test
   fun `getOpenedMergeRequests returns merge requests from every page`() = runTest {
@@ -33,6 +34,7 @@ class RepositoryTest {
 
     assertThat(mergeRequests).hasSize(34)
     assertThat(requestedPages).containsExactly(1)
+    assertThat(requestedPageSizes).containsExactly("100")
   }
 
   @Test
@@ -62,6 +64,7 @@ class RepositoryTest {
     val page = request.url.parameters["page"]?.toInt() ?: 1
     val perPage = request.url.parameters["per_page"]?.toInt()?.coerceAtMost(100) ?: 20
     requestedPages += page
+    requestedPageSizes += request.url.parameters["per_page"]
     if (page == failingPage) return@run respond("", HttpStatusCode.Forbidden)
     val ids = (1..totalMergeRequests).drop((page - 1) * perPage).take(perPage)
     val nextPage = if (page * perPage < totalMergeRequests) (page + 1).toString() else ""
