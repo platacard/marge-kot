@@ -13,7 +13,7 @@ import kotlin.time.Duration
 import kotlin.time.Duration.Companion.minutes
 
 val appModule = module {
-  singleOf(::Repository)
+  single { Repository() }
   singleOf(::MergeRequestMergeableChecker)
   single(createdAtStart = true) {
     MergeHelper(

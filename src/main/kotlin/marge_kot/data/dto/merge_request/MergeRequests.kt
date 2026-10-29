@@ -20,4 +20,7 @@ class MergeRequests(
   val targetBranch: String? = null,
   @SerialName("labels")
   val label: String? = null,
+  @SerialName("per_page")
+  val perPage: Int? = null,
+  val page: Int? = null,
 )

@@ -3,6 +3,7 @@ package marge_kot.data
 import io.github.aakira.napier.Napier
 import io.ktor.client.HttpClient
 import io.ktor.client.call.body
+import io.ktor.client.engine.HttpClientEngine
 import io.ktor.client.engine.cio.CIO
 import io.ktor.client.plugins.HttpRequestRetry
 import io.ktor.client.plugins.contentnegotiation.ContentNegotiation
@@ -37,11 +38,13 @@ import marge_kot.data.dto.user.User
 import marge_kot.data.dto.user.UserRequest
 import marge_kot.utils.log.configureLogger
 
-class Repository {
+private const val MAX_PER_PAGE = 100
 
-  private val client: HttpClient = createClient()
+class Repository(
+  projectId: String = System.getenv("MARGE_KOT_PROJECT_ID") ?: error("Please provide project id"),
+  private val client: HttpClient = createClient(),
+) {
 
-  private val projectId: String = System.getenv("MARGE_KOT_PROJECT_ID") ?: error("Please provide project id")
   private val projectRequest: ProjectRequest = ProjectRequest(projectId)
   private val simpleMergeRequestsRequest = MergeRequests(
     parent = projectRequest,
@@ -55,18 +58,26 @@ class Repository {
     label: String? = null,
   ): List<MergeRequest> {
     try {
-      val response = client.get(
-        MergeRequests(
-          parent = projectRequest,
-          scope = scope,
-          state = State.OPENED,
-          targetBranch = targetBranch,
-          orderBy = OrderBy.UPDATED_AT,
-          sort = Sort.ASCENDING,
-          label = label,
+      val mergeRequests = mutableListOf<MergeRequest>()
+      var page: Int? = 1
+      while (page != null) {
+        val response = client.get(
+          MergeRequests(
+            parent = projectRequest,
+            scope = scope,
+            state = State.OPENED,
+            targetBranch = targetBranch,
+            orderBy = OrderBy.UPDATED_AT,
+            sort = Sort.ASCENDING,
+            label = label,
+            perPage = MAX_PER_PAGE,
+            page = page,
+          )
         )
-      )
-      return response.body()
+        mergeRequests += response.body<List<MergeRequest>>()
+        page = response.headers["X-Next-Page"]?.toIntOrNull()
+      }
+      return mergeRequests
     } catch (e: Throwable) {
       Napier.e("Failed to fetch merge requests for branch $targetBranch, scope $scope, label $label", e)
       return emptyList()
@@ -109,7 +120,7 @@ class Repository {
   suspend fun getBranchInfo(branchName: String = "main"): Branch {
     return client.get(
       BranchRequest(
-        parent = ProjectRequest(projectId),
+        parent = projectRequest,
         name = branchName,
       )
     ).body()
@@ -179,8 +190,12 @@ class Repository {
   }
 }
 
-private fun createClient(): HttpClient {
-  return HttpClient(CIO) {
+internal fun createClient(
+  engine: HttpClientEngine = CIO.create(),
+  baseUrl: String = System.getenv("MARGE_KOT_BASE_API") ?: error("Please provide gitlab api base url"),
+  authToken: String = System.getenv("MARGE_KOT_AUTH_TOKEN") ?: error("Please provide auth token for Gitlab"),
+): HttpClient {
+  return HttpClient(engine) {
     install(Resources)
     install(ContentNegotiation) {
       json(
@@ -201,9 +216,8 @@ private fun createClient(): HttpClient {
     }
 
     defaultRequest {
-      val url = System.getenv("MARGE_KOT_BASE_API") ?: error("Please provide gitlab api base url")
-      url(url)
-      bearerAuth(System.getenv("MARGE_KOT_AUTH_TOKEN") ?: error("Please provide auth token for Gitlab"))
+      url(baseUrl)
+      bearerAuth(authToken)
     }
 
     expectSuccess = true
